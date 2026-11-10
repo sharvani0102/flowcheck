@@ -1,0 +1,531 @@
+{
+  "flowcheck_version": "0.1.0",
+  "reference_commit": "e6a78cb",
+  "fc004_implemented": false,
+  "benchmarks": [
+    {
+      "id": "swe/passed_workflow_1",
+      "benchmark": "SWE-Bench Verified",
+      "file": "experiments/SWE_bench_verified/passed_workflow_1.yaml",
+      "lean4agent_label": "passed",
+      "verdict": "pass",
+      "verdict_spec_rules": "pass",
+      "counts": {},
+      "findings": []
+    },
+    {
+      "id": "swe/passed_workflow_2",
+      "benchmark": "SWE-Bench Verified",
+      "file": "experiments/SWE_bench_verified/passed_workflow_2.yaml",
+      "lean4agent_label": "passed",
+      "verdict": "pass",
+      "verdict_spec_rules": "pass",
+      "counts": {},
+      "findings": []
+    },
+    {
+      "id": "swe/passed_workflow_3",
+      "benchmark": "SWE-Bench Verified",
+      "file": "experiments/SWE_bench_verified/passed_workflow_3.yaml",
+      "lean4agent_label": "passed",
+      "verdict": "warn",
+      "verdict_spec_rules": "warn",
+      "counts": {
+        "FC002": 1
+      },
+      "findings": [
+        {
+          "rule_id": "FC002",
+          "severity": "warning",
+          "node_id": "workflow[7].if.then[0].task",
+          "message": "{{fix_description}} may be undefined here: it is not written when `while fix_attempt < max_fix_attempts` runs zero times (line 185)",
+          "hint": "make sure 'fix_description' is written on every path, e.g. initialise it with set_variable before the branch or loop",
+          "node_name": "create_patch",
+          "node_type": "task",
+          "line": 394,
+          "variable": "fix_description"
+        }
+      ]
+    },
+    {
+      "id": "swe/failed_workflow_1",
+      "benchmark": "SWE-Bench Verified",
+      "file": "experiments/SWE_bench_verified/failed_workflow_1.yaml",
+      "lean4agent_label": "failed",
+      "verdict": "pass",
+      "verdict_spec_rules": "pass",
+      "counts": {},
+      "findings": []
+    },
+    {
+      "id": "swe/failed_workflow_2",
+      "benchmark": "SWE-Bench Verified",
+      "file": "experiments/SWE_bench_verified/failed_workflow_2.yaml",
+      "lean4agent_label": "failed",
+      "verdict": "fail",
+      "verdict_spec_rules": "pass",
+      "counts": {
+        "FC005": 1
+      },
+      "findings": [
+        {
+          "rule_id": "FC005",
+          "severity": "error",
+          "node_id": "workflow[2].if",
+          "message": "the condition part 'repro_report contains could_not_reproduce' is neither a comparison (== != < > <= >=) nor a variable name, so AgentSPEX evaluates it as false every time (conditions.py:142-206); the 'then' branch never runs",
+          "hint": "rewrite it as a supported comparison, or compute a flag with a step and test that",
+          "node_name": "if repro_report contains could_not_reproduce",
+          "node_type": "if",
+          "line": 137,
+          "variable": null
+        }
+      ]
+    },
+    {
+      "id": "swe/failed_workflow_3",
+      "benchmark": "SWE-Bench Verified",
+      "file": "experiments/SWE_bench_verified/failed_workflow_3.yaml",
+      "lean4agent_label": "failed",
+      "verdict": "fail",
+      "verdict_spec_rules": "pass",
+      "counts": {
+        "FC005": 2
+      },
+      "findings": [
+        {
+          "rule_id": "FC005",
+          "severity": "error",
+          "node_id": "workflow[6].switch",
+          "message": "this switch has no string 'variable' key, so AgentSPEX looks up None, no case ever matches, and it always runs 'default' (control.py:405-417). YAML 1.1 read one of its keys as the boolean True (this happens to 'on:', 'yes:', 'no:', 'off:')",
+          "hint": "use 'variable: <name>' (quote YAML keys like 'on')",
+          "node_name": "switch (no variable)",
+          "node_type": "switch",
+          "line": 184,
+          "variable": null
+        },
+        {
+          "rule_id": "FC005",
+          "severity": "error",
+          "node_id": "workflow[8].if",
+          "message": "the condition part 'post_fix_verification contains 'REPRO_AFTER_FIX: fail'' is neither a comparison (== != < > <= >=) nor a variable name, so AgentSPEX evaluates it as false every time (conditions.py:142-206); the 'then' branch never runs",
+          "hint": "rewrite it as a supported comparison, or compute a flag with a step and test that",
+          "node_name": "if post_fix_verification contains 'REPRO_AFTER_FIX: fail'",
+          "node_type": "if",
+          "line": 264,
+          "variable": null
+        }
+      ]
+    },
+    {
+      "id": "elaip/passed_workflow_1",
+      "benchmark": "ELAIP-Bench",
+      "file": "experiments/elaipbench/passed_workflow_1.yaml",
+      "lean4agent_label": "passed",
+      "verdict": "pass",
+      "verdict_spec_rules": "pass",
+      "counts": {},
+      "findings": []
+    },
+    {
+      "id": "elaip/passed_workflow_2",
+      "benchmark": "ELAIP-Bench",
+      "file": "experiments/elaipbench/passed_workflow_2.yaml",
+      "lean4agent_label": "passed",
+      "verdict": "pass",
+      "verdict_spec_rules": "pass",
+      "counts": {},
+      "findings": []
+    },
+    {
+      "id": "elaip/passed_workflow_3",
+      "benchmark": "ELAIP-Bench",
+      "file": "experiments/elaipbench/passed_workflow_3.yaml",
+      "lean4agent_label": "passed",
+      "verdict": "fail",
+      "verdict_spec_rules": "fail",
+      "counts": {
+        "FC001": 1
+      },
+      "findings": [
+        {
+          "rule_id": "FC001",
+          "severity": "error",
+          "node_id": "workflow[5].for_each",
+          "message": "for_each 'in: question_keywords.keywords' is looked up as one flat key, not a dotted path (control.py:167-169), so the loop runs once over the literal string 'question_keywords.keywords'",
+          "hint": "first save the list to its own variable (e.g. a task with save_as), then loop over that",
+          "node_name": "for_each keyword in question_keywords.keywords",
+          "node_type": "for_each",
+          "line": 104,
+          "variable": "question_keywords.keywords"
+        }
+      ]
+    },
+    {
+      "id": "elaip/failed_workflow_1",
+      "benchmark": "ELAIP-Bench",
+      "file": "experiments/elaipbench/failed_workflow_1.yaml",
+      "lean4agent_label": "failed",
+      "verdict": "warn",
+      "verdict_spec_rules": "warn",
+      "counts": {
+        "FC002": 1
+      },
+      "findings": [
+        {
+          "rule_id": "FC002",
+          "severity": "warning",
+          "node_id": "workflow[10].switch.cases.MA-MCQ[2].task",
+          "message": "{{option_judgment}} may be undefined here: it is not written when `while recheck_count < 3` runs zero times (line 183)",
+          "hint": "make sure 'option_judgment' is written on every path, e.g. initialise it with set_variable before the branch or loop",
+          "node_name": "finalize_multi_answer",
+          "node_type": "task",
+          "line": 219,
+          "variable": "option_judgment"
+        }
+      ]
+    },
+    {
+      "id": "elaip/failed_workflow_2",
+      "benchmark": "ELAIP-Bench",
+      "file": "experiments/elaipbench/failed_workflow_2.yaml",
+      "lean4agent_label": "failed",
+      "verdict": "fail",
+      "verdict_spec_rules": "fail",
+      "counts": {
+        "FC001": 1
+      },
+      "findings": [
+        {
+          "rule_id": "FC001",
+          "severity": "error",
+          "node_id": "workflow[4].for_each",
+          "message": "for_each 'in: question_analysis.keywords' is looked up as one flat key, not a dotted path (control.py:167-169), so the loop runs once over the literal string 'question_analysis.keywords'",
+          "hint": "first save the list to its own variable (e.g. a task with save_as), then loop over that",
+          "node_name": "for_each keyword in question_analysis.keywords",
+          "node_type": "for_each",
+          "line": 95,
+          "variable": "question_analysis.keywords"
+        }
+      ]
+    },
+    {
+      "id": "elaip/failed_workflow_3",
+      "benchmark": "ELAIP-Bench",
+      "file": "experiments/elaipbench/failed_workflow_3.yaml",
+      "lean4agent_label": "failed",
+      "verdict": "warn",
+      "verdict_spec_rules": "warn",
+      "counts": {
+        "FC002": 1
+      },
+      "findings": [
+        {
+          "rule_id": "FC002",
+          "severity": "warning",
+          "node_id": "workflow[11].switch.cases.MA-MCQ[2].step",
+          "message": "{{combined_judgment}} may be undefined here: it is not written when `while recheck_count < 3` runs zero times (line 195)",
+          "hint": "make sure 'combined_judgment' is written on every path, e.g. initialise it with set_variable before the branch or loop",
+          "node_name": "finalize_multi_answer",
+          "node_type": "step",
+          "line": 224,
+          "variable": "combined_judgment"
+        }
+      ]
+    }
+  ],
+  "agreement": [
+    {
+      "rules": "all (FC001-FC005)",
+      "flag": "errors",
+      "counts": {
+        "TP": 3,
+        "FN": 3,
+        "FP": 1,
+        "TN": 5
+      }
+    },
+    {
+      "rules": "all (FC001-FC005)",
+      "flag": "any",
+      "counts": {
+        "TP": 5,
+        "FN": 1,
+        "FP": 2,
+        "TN": 4
+      }
+    },
+    {
+      "rules": "spec (FC001-FC004)",
+      "flag": "errors",
+      "counts": {
+        "TP": 1,
+        "FN": 5,
+        "FP": 1,
+        "TN": 5
+      }
+    },
+    {
+      "rules": "spec (FC001-FC004)",
+      "flag": "any",
+      "counts": {
+        "TP": 3,
+        "FN": 3,
+        "FP": 2,
+        "TN": 4
+      }
+    }
+  ],
+  "lean4agent_problems": {
+    "workflows": {
+      "swe/failed_workflow_1": {
+        "source": "FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow_1.lean:41-46",
+        "lean_verdict": "infoSound = false (failed_workflow_1.lean:311)",
+        "items": [
+          {
+            "text": "ALL nodes are `step` type (fresh context each time, no conversation history)",
+            "classification": "flowcheck-gap",
+            "reasoning": "The comment uses the old engine's naming; the YAML uses `task`, which is the stateless kind today (semantics \u00a71.1). Isolated nodes that depend on earlier work are FC004's job, which is not implemented yet."
+          },
+          {
+            "text": "NO `save_as` variables \u2014 nothing is passed between steps",
+            "classification": "flowcheck-gap",
+            "reasoning": "No step reads a variable, so there is nothing undefined for FC001-FC003 to report. The problem is that steps refer to earlier work without receiving it (FC004, not yet implemented)."
+          },
+          {
+            "text": "NO retry loop \u2014 if fix fails, no way to go back",
+            "classification": "needs-annotations",
+            "reasoning": "A missing recovery path is a property of the goal (fix verified before submit), not of information flow. Lean4Agent checks it with sub-goal annotations; FlowCheck has no notion of goals."
+          },
+          {
+            "text": "Each step must re-explore the codebase from scratch",
+            "classification": "flowcheck-gap",
+            "reasoning": "Consequence of items 1-2; FC004 territory (not yet implemented)."
+          },
+          {
+            "text": "verify_fix has NO info about what implement_fix actually changed",
+            "classification": "flowcheck-gap",
+            "reasoning": "verify_fix is a task with no upstream input; whether its instruction refers to the fix is what FC004 checks (not yet implemented)."
+          }
+        ]
+      },
+      "swe/failed_workflow_2": {
+        "source": "FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow_2.lean:46-57",
+        "lean_verdict": "infoSound = false (failed_workflow_2.lean:478)",
+        "extra_findings": [
+          {
+            "rule": "FC005",
+            "node": "if repro_report contains could_not_reproduce",
+            "note": "Not in Lean4Agent's list: the condition uses `contains`, which AgentSPEX's condition grammar does not support, so it is always false and reproduction_retry never runs."
+          }
+        ],
+        "items": [
+          {
+            "text": "The terminal `create_and_submit_patch` step reads NOTHING upstream",
+            "classification": "flowcheck-gap",
+            "reasoning": "A task with no upstream reads is not an undefined read; FC004 (not yet implemented) is the rule that targets it."
+          },
+          {
+            "text": "The `for_each` probe_edge_case body has NO save_as \u2014 per-edge-case findings evaporate",
+            "classification": "flowcheck-gap",
+            "reasoning": "Visible from the YAML (an LLM step in a loop body whose output is never saved), but FlowCheck only checks reads, not outputs that are produced and dropped. A \"discarded output\" rule would cover it."
+          },
+          {
+            "text": "`reproduction_retry` overwrites repro_report in the then-branch but the else-branch writes nothing",
+            "classification": "needs-annotations",
+            "reasoning": "repro_report is defined on both paths (written before the `if`), so there is no undefined read; Lean4Agent itself notes both branches leave it non-empty. Whether the two states mean the same thing needs postconditions. Separately, FlowCheck finds that this `if` can never take the then-branch at all (FC005, see extra_findings)."
+          }
+        ]
+      },
+      "swe/failed_workflow_3": {
+        "source": "FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow_3.lean:60-72",
+        "lean_verdict": "hoareSound = false, infoSound = false (failed_workflow_3.lean:735-736)",
+        "extra_findings": [
+          {
+            "rule": "FC005",
+            "node": "switch (no variable)",
+            "note": "Not in Lean4Agent's list: `switch: on:` is parsed by YAML 1.1 as the boolean key True, so the switch has no `variable` and always runs the default branch; the four strategy-specific fix steps can never run."
+          },
+          {
+            "rule": "FC005",
+            "node": "if post_fix_verification contains 'REPRO_AFTER_FIX: fail'",
+            "note": "Not in Lean4Agent's list: `contains` is unsupported, so adjust_fix_once never runs."
+          }
+        ],
+        "items": [
+          {
+            "text": "`for_each` body step `inspect_candidate` has NO save_as \u2014 scouting results are lost",
+            "classification": "flowcheck-gap",
+            "reasoning": "Same as swe/failed_workflow_2 item 2: discarded outputs are not checked."
+          },
+          {
+            "text": "`adjust_fix_once` runs exactly once and flows straight into edge_case_plan WITHOUT a second verify step",
+            "classification": "needs-annotations",
+            "reasoning": "A missing verification step is a goal-coverage property, not information flow."
+          },
+          {
+            "text": "post_fix_verification is STALE after adjust_fix_once",
+            "classification": "needs-annotations",
+            "reasoning": "The variable is defined; that it no longer describes the code after the adjustment is a semantic fact about what the steps do, which needs postconditions."
+          },
+          {
+            "text": "All LLM nodes are `step` (fresh context each time) \u2014 no implicit retry via conversation history",
+            "classification": "flowcheck-gap",
+            "reasoning": "Old-engine naming; the YAML uses `task`. Isolation is FC004's job (not yet implemented)."
+          }
+        ]
+      },
+      "elaip/failed_workflow_1": {
+        "source": "FormalAgentLib/StaticSemanticWorkflowExamples/ELAIP-Bench/failed_workflow_1.lean:1-14, 40-46",
+        "lean_verdict": "infoSound = false (failed_workflow_1.lean:356)",
+        "extra_findings": [
+          {
+            "rule": "FC002",
+            "node": "finalize_multi_answer",
+            "note": "option_judgment is only written inside the recheck `while`, which FlowCheck must assume may run zero times. Here it always runs (recheck_count starts at 0 < 3), so this is a path-sensitivity false positive that phase two should discharge."
+          }
+        ],
+        "items": [
+          {
+            "text": "Evidence is NOT grounded: keyword_hits \u2192 opaque evidence_snippets buffer; no grounding/verification node",
+            "classification": "needs-annotations",
+            "reasoning": "Whether evidence is verbatim and verified is a property of step outputs (boundedEvidenceList / verbatimSubstring predicates), not of which variables exist."
+          },
+          {
+            "text": "Fragmented judgement: four independent evaluate_A..D over evidence_snippets",
+            "classification": "needs-annotations",
+            "reasoning": "A design property checked through goal coverage in Lean4Agent."
+          },
+          {
+            "text": "infoSound = FALSE: evaluate_A..D require evidence_snippets, which no semantic node produces",
+            "classification": "needs-annotations",
+            "reasoning": "At the variable level evidence_snippets is defined: a set_variable initialises it before the loop and the loop appends to it. Lean4Agent's information model doesn't count set_variable as a producer of an information atom. That distinction needs its annotations; FlowCheck correctly reports no undefined read here."
+          }
+        ]
+      },
+      "elaip/failed_workflow_2": {
+        "source": "FormalAgentLib/StaticSemanticWorkflowExamples/ELAIP-Bench/failed_workflow_2.lean:1-12, 38-41",
+        "lean_verdict": "infoSound = false (failed_workflow_2.lean:327)",
+        "items": [
+          {
+            "text": "search_keyword_in_paper is BROKEN: save_as = None and it reads a `{{keyword}}` loop variable never bound by a producing node",
+            "classification": "caught",
+            "expect": [
+              {
+                "rule": "FC001",
+                "node": "for_each keyword in question_analysis.keywords",
+                "var": "question_analysis.keywords"
+              }
+            ],
+            "reasoning": "FlowCheck finds the step broken for a different, concrete reason. `keyword` *is* bound (it is the for_each variable), but the loop is `in: question_analysis.keywords`, which AgentSPEX looks up as one flat key (control.py:167-169). So the loop runs once with keyword = \"question_analysis.keywords\". The missing save_as (results dropped) is not checked by FlowCheck (see swe/failed_workflow_2 item 2)."
+          }
+        ]
+      },
+      "elaip/failed_workflow_3": {
+        "source": "FormalAgentLib/StaticSemanticWorkflowExamples/ELAIP-Bench/failed_workflow_3.lean:1-10, 37-41",
+        "lean_verdict": "infoSound = false (failed_workflow_3.lean:383)",
+        "stale": "The YAML was rewritten in Lean4Agent commit 17b2099 after the IR and this Lean file were written (see the cross-check, category IR-stale-vs-YAML). The documented problem names steps and variables (recheck_summary, option_judgment) that no longer exist in the YAML.",
+        "extra_findings": [
+          {
+            "rule": "FC002",
+            "node": "finalize_multi_answer",
+            "note": "combined_judgment is only written inside the recheck while loop; same pattern as elaip/failed_workflow_1."
+          }
+        ],
+        "items": [
+          {
+            "text": "NO consolidated verdict-validated option_judgment; finalize blocks on the missing option_judgment atom",
+            "classification": "needs-annotations",
+            "reasoning": "A validated, consolidated verdict is an output-quality property. In the current YAML the finaliser reads combined_judgment, which exists on every path except a zero-iteration recheck loop (FC002, a path-sensitivity false positive like elaip/failed_workflow_1's)."
+          }
+        ]
+      }
+    },
+    "totals": {
+      "flowcheck-gap": 8,
+      "needs-annotations": 8,
+      "caught": 1
+    },
+    "passed_findings": [
+      {
+        "workflow": "swe/passed_workflow_3",
+        "rule": "FC002",
+        "node": "create_patch",
+        "var": "fix_description",
+        "verdict": "false-positive",
+        "reasoning": "fix_description is only written inside `while fix_attempt < max_fix_attempts`. The loop always runs at least once, because fix_attempt is set to 0 just before it and max_fix_attempts is 3; the Lean4Agent IR records loop_executes_at_least_once: true. FlowCheck is path-insensitive and must assume zero iterations. Phase two's feasibility oracle would discharge this."
+      },
+      {
+        "workflow": "elaip/passed_workflow_3",
+        "rule": "FC001",
+        "node": "for_each keyword in question_keywords.keywords",
+        "var": "question_keywords.keywords",
+        "verdict": "true-positive",
+        "reasoning": "A real bug that Lean4Agent passes. AgentSPEX looks up for_each `in` as one flat key (control.py:167-169), so `in: question_keywords.keywords` iterates once over the literal string \"question_keywords.keywords\", and search_paper_for_keyword searches for that string instead of the extracted keywords. Lean4Agent's IR builder records only the branch_path \"for_each:keyword\" and never models `in`, so it can't see this."
+      }
+    ]
+  },
+  "crosscheck": {
+    "total": 103,
+    "by_category": {
+      "IR-type-label": 1,
+      "IR-conceptual-read": 5,
+      "IR-abstraction": 14,
+      "IR-stale-vs-YAML": 41,
+      "IR-runtime-ignores": 3,
+      "IR-conceptual-write": 2,
+      "IR-linearised-edges": 35,
+      "IR-instruction-only-reads": 2
+    },
+    "by_workflow": {
+      "elaip/failed_workflow_1": {
+        "IR-instruction-only-reads": 1,
+        "IR-linearised-edges": 6
+      },
+      "elaip/failed_workflow_2": {
+        "IR-linearised-edges": 6
+      },
+      "elaip/failed_workflow_3": {
+        "IR-stale-vs-YAML": 36,
+        "IR-linearised-edges": 3
+      },
+      "elaip/passed_workflow_1": {
+        "IR-linearised-edges": 8
+      },
+      "elaip/passed_workflow_2": {
+        "IR-linearised-edges": 4
+      },
+      "elaip/passed_workflow_3": {
+        "IR-instruction-only-reads": 1,
+        "IR-linearised-edges": 8
+      },
+      "swe/failed_workflow_2": {
+        "IR-stale-vs-YAML": 5,
+        "IR-runtime-ignores": 1,
+        "IR-abstraction": 2,
+        "IR-conceptual-write": 1
+      },
+      "swe/failed_workflow_3": {
+        "IR-conceptual-read": 4,
+        "IR-runtime-ignores": 2,
+        "IR-conceptual-write": 1
+      },
+      "swe/passed_workflow_2": {
+        "IR-type-label": 1,
+        "IR-conceptual-read": 1
+      },
+      "swe/passed_workflow_3": {
+        "IR-abstraction": 12
+      }
+    },
+    "categories": {
+      "IR-linearised-edges": "The ELAIP IR builder links each flattened node to the next one only (experiments/elaip_LeanEvolve/build_layer2_ir.py:394-399), so it has no loop-back, loop-skip or branch edges, and it chains the last node of one branch to the first node of the next. FlowCheck models the real control flow.",
+      "IR-instruction-only-reads": "The ELAIP IR builder takes reads from `instruction` only and records none for set_variable (build_layer2_ir.py:243, 292). AgentSPEX template-expands set_variable `value` (variables.py:92), so FlowCheck counts those reads.",
+      "IR-stale-vs-YAML": "The YAML was changed after the IR was generated (ELAIP failed_workflow_3: rewritten in Lean4Agent commit 17b2099; SWE failed_workflow_2: the old `discover` step was ported to a task named `edge_case_list`, see the comment at failed_workflow_2.yaml:229). The IR describes the older workflow.",
+      "IR-abstraction": "The SWE IR is a hand/LLM-authored abstraction: it omits scaffolding steps (set_variable, increment), merges or drops some LLM steps and an inner `if`, models for_each as whileLoop, and leaves out some templated reads. FlowCheck lists every step and every `{{...}}` the runtime expands.",
+      "IR-conceptual-read": "The IR lists a read that the YAML never template-expands: the variable is only named in prose (e.g. 'Source: candidate_files_report', 'the PR description', a path mentioned in text). At runtime the value is not substituted, so FlowCheck has no read. (Several of these are exactly what FC004 is meant to flag.)",
+      "IR-conceptual-write": "The IR lists a write, but the YAML step has no save_as, so nothing is written at runtime.",
+      "IR-runtime-ignores": "The IR lists the read a broken construct was meant to perform, but AgentSPEX never performs it: the condition uses the unsupported `contains` operator (always false, conditions.py:142-206), or the switch has no `variable` key because YAML parsed `on:` as a boolean (control.py:405-417). FlowCheck reports these as FC005 instead.",
+      "IR-type-label": "The IR labels the step with a different step type than the YAML uses."
+    }
+  }
+}

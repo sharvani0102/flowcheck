@@ -324,7 +324,8 @@ class _Builder:
                 line: Optional[int]) -> "Pending":
         body = body if isinstance(body, dict) else {}
         var = body.get("variable")
-        h = self.node("switch", f"switch {_text(var)}", scope, path, line,
+        h = self.node("switch", f"switch {var}" if isinstance(var, str) and var
+                      else "switch (no variable)", scope, path, line,
                       extra={"variable": var})
         self.connect(pending, h.id)
         if isinstance(var, str) and var:

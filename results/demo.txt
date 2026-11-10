@@ -1,0 +1,14 @@
+FlowCheck demo (run from reference/Lean4Agent, commit e6a78cb; flowcheck 0.1.0)
+One workflow Lean4Agent rejects and one it accepts.
+
+$ flowcheck experiments/SWE_bench_verified/failed_workflow_3.yaml
+experiments/SWE_bench_verified/failed_workflow_3.yaml:184: error FC005 [switch (no variable) (switch)] this switch has no string 'variable' key, so AgentSPEX looks up None, no case ever matches, and it always runs 'default' (control.py:405-417). YAML 1.1 read one of its keys as the boolean True (this happens to 'on:', 'yes:', 'no:', 'off:')
+    hint: use 'variable: <name>' (quote YAML keys like 'on')
+experiments/SWE_bench_verified/failed_workflow_3.yaml:264: error FC005 [if post_fix_verification contains 'REPRO_AFTER_FIX: fail' (if)] the condition part 'post_fix_verification contains 'REPRO_AFTER_FIX: fail'' is neither a comparison (== != < > <= >=) nor a variable name, so AgentSPEX evaluates it as false every time (conditions.py:142-206); the 'then' branch never runs
+    hint: rewrite it as a supported comparison, or compute a flag with a step and test that
+2 error(s), 0 warning(s) in 1 file(s)
+[exit code 1]
+
+$ flowcheck experiments/SWE_bench_verified/passed_workflow_1.yaml
+0 error(s), 0 warning(s) in 1 file(s)
+[exit code 0]

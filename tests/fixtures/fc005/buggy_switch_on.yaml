@@ -1,4 +1,4 @@
-# expect: FC005 node="switch "
+# expect: FC005 node="switch (no variable)"
 name: fc005_switch_on
 goal: YAML 1.1 reads the key 'on' as the boolean true.
 parameters:

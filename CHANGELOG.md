@@ -17,3 +17,11 @@ All notable changes to FlowCheck are listed here.
 - Tests: rule fixtures, parser and CLI tests, and an exact graph cross-check
   against Lean4Agent's 12 benchmark IR files with every mismatch reviewed in
   `tests/crosscheck/expected_mismatches.yaml`.
+- `scripts/evaluate.py` (Step 4a): runs FlowCheck on Lean4Agent's 12 labelled
+  workflows, validates the hand-written review in
+  `results/annotations/lean4agent_problems.yaml`, and writes
+  `results/phase1_eval.json`, `docs/phase1-results.md` and `results/demo.txt`.
+
+### Changed
+- README rule table: FC003 covers list-form `parallel` and modules only (loops
+  and branches are not scopes in AgentSPEX); FC005 added.

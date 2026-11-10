@@ -1,0 +1,194 @@
+# Hand-written review input for scripts/evaluate.py (Step 4a).
+#
+# `problems`: every problem Lean4Agent documents for a failed workflow, with
+# where it is documented, how FlowCheck relates to it, and why.
+#   classification:
+#     caught             FlowCheck reports it. `expect` lists the findings that
+#                        show this; evaluate.py fails if any is missing.
+#     needs-annotations  Not visible from the YAML alone; needs per-step
+#                        pre/postconditions or goal annotations (phase two).
+#     flowcheck-gap      Visible from the YAML, but no FlowCheck rule covers it.
+#
+# `passed_findings`: every finding FlowCheck reports on a passed workflow,
+# reviewed. evaluate.py fails if a finding has no review here.
+#   verdict: false-positive | true-positive | unsure
+#
+# Paths are relative to reference/Lean4Agent/.
+
+problems:
+  swe/failed_workflow_1:
+    source: FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow_1.lean:41-46
+    lean_verdict: "infoSound = false (failed_workflow_1.lean:311)"
+    items:
+      - text: "ALL nodes are `step` type (fresh context each time, no conversation history)"
+        classification: flowcheck-gap
+        reasoning: >-
+          The comment uses the old engine's naming; the YAML uses `task`, which is the
+          stateless kind today (semantics §1.1). Isolated nodes that depend on earlier work
+          are FC004's job, which is not implemented yet.
+      - text: "NO `save_as` variables — nothing is passed between steps"
+        classification: flowcheck-gap
+        reasoning: >-
+          No step reads a variable, so there is nothing undefined for FC001-FC003 to report.
+          The problem is that steps refer to earlier work without receiving it (FC004, not yet
+          implemented).
+      - text: "NO retry loop — if fix fails, no way to go back"
+        classification: needs-annotations
+        reasoning: >-
+          A missing recovery path is a property of the goal (fix verified before submit), not
+          of information flow. Lean4Agent checks it with sub-goal annotations; FlowCheck has
+          no notion of goals.
+      - text: "Each step must re-explore the codebase from scratch"
+        classification: flowcheck-gap
+        reasoning: "Consequence of items 1-2; FC004 territory (not yet implemented)."
+      - text: "verify_fix has NO info about what implement_fix actually changed"
+        classification: flowcheck-gap
+        reasoning: >-
+          verify_fix is a task with no upstream input; whether its instruction refers to the
+          fix is what FC004 checks (not yet implemented).
+
+  swe/failed_workflow_2:
+    source: FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow_2.lean:46-57
+    lean_verdict: "infoSound = false (failed_workflow_2.lean:478)"
+    items:
+      - text: "The terminal `create_and_submit_patch` step reads NOTHING upstream"
+        classification: flowcheck-gap
+        reasoning: >-
+          A task with no upstream reads is not an undefined read; FC004 (not yet implemented)
+          is the rule that targets it.
+      - text: "The `for_each` probe_edge_case body has NO save_as — per-edge-case findings evaporate"
+        classification: flowcheck-gap
+        reasoning: >-
+          Visible from the YAML (an LLM step in a loop body whose output is never saved), but
+          FlowCheck only checks reads, not outputs that are produced and dropped. A
+          "discarded output" rule would cover it.
+      - text: "`reproduction_retry` overwrites repro_report in the then-branch but the else-branch writes nothing"
+        classification: needs-annotations
+        reasoning: >-
+          repro_report is defined on both paths (written before the `if`), so there is no
+          undefined read; Lean4Agent itself notes both branches leave it non-empty. Whether the
+          two states mean the same thing needs postconditions. Separately, FlowCheck finds that
+          this `if` can never take the then-branch at all (FC005, see extra_findings).
+    extra_findings:
+      - rule: FC005
+        node: "if repro_report contains could_not_reproduce"
+        note: >-
+          Not in Lean4Agent's list: the condition uses `contains`, which AgentSPEX's condition
+          grammar does not support, so it is always false and reproduction_retry never runs.
+
+  swe/failed_workflow_3:
+    source: FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow_3.lean:60-72
+    lean_verdict: "hoareSound = false, infoSound = false (failed_workflow_3.lean:735-736)"
+    items:
+      - text: "`for_each` body step `inspect_candidate` has NO save_as — scouting results are lost"
+        classification: flowcheck-gap
+        reasoning: "Same as swe/failed_workflow_2 item 2: discarded outputs are not checked."
+      - text: "`adjust_fix_once` runs exactly once and flows straight into edge_case_plan WITHOUT a second verify step"
+        classification: needs-annotations
+        reasoning: "A missing verification step is a goal-coverage property, not information flow."
+      - text: "post_fix_verification is STALE after adjust_fix_once"
+        classification: needs-annotations
+        reasoning: >-
+          The variable is defined; that it no longer describes the code after the adjustment
+          is a semantic fact about what the steps do, which needs postconditions.
+      - text: "All LLM nodes are `step` (fresh context each time) — no implicit retry via conversation history"
+        classification: flowcheck-gap
+        reasoning: "Old-engine naming; the YAML uses `task`. Isolation is FC004's job (not yet implemented)."
+    extra_findings:
+      - rule: FC005
+        node: "switch (no variable)"
+        note: >-
+          Not in Lean4Agent's list: `switch: on:` is parsed by YAML 1.1 as the boolean key True,
+          so the switch has no `variable` and always runs the default branch; the four
+          strategy-specific fix steps can never run.
+      - rule: FC005
+        node: "if post_fix_verification contains 'REPRO_AFTER_FIX: fail'"
+        note: "Not in Lean4Agent's list: `contains` is unsupported, so adjust_fix_once never runs."
+
+  elaip/failed_workflow_1:
+    source: FormalAgentLib/StaticSemanticWorkflowExamples/ELAIP-Bench/failed_workflow_1.lean:1-14, 40-46
+    lean_verdict: "infoSound = false (failed_workflow_1.lean:356)"
+    items:
+      - text: "Evidence is NOT grounded: keyword_hits → opaque evidence_snippets buffer; no grounding/verification node"
+        classification: needs-annotations
+        reasoning: >-
+          Whether evidence is verbatim and verified is a property of step outputs
+          (boundedEvidenceList / verbatimSubstring predicates), not of which variables exist.
+      - text: "Fragmented judgement: four independent evaluate_A..D over evidence_snippets"
+        classification: needs-annotations
+        reasoning: "A design property checked through goal coverage in Lean4Agent."
+      - text: "infoSound = FALSE: evaluate_A..D require evidence_snippets, which no semantic node produces"
+        classification: needs-annotations
+        reasoning: >-
+          At the variable level evidence_snippets is defined: a set_variable initialises it
+          before the loop and the loop appends to it. Lean4Agent's information model doesn't
+          count set_variable as a producer of an information atom. That distinction needs its
+          annotations; FlowCheck correctly reports no undefined read here.
+    extra_findings:
+      - rule: FC002
+        node: finalize_multi_answer
+        note: >-
+          option_judgment is only written inside the recheck `while`, which FlowCheck must assume
+          may run zero times. Here it always runs (recheck_count starts at 0 < 3), so this is a
+          path-sensitivity false positive that phase two should discharge.
+
+  elaip/failed_workflow_2:
+    source: FormalAgentLib/StaticSemanticWorkflowExamples/ELAIP-Bench/failed_workflow_2.lean:1-12, 38-41
+    lean_verdict: "infoSound = false (failed_workflow_2.lean:327)"
+    items:
+      - text: "search_keyword_in_paper is BROKEN: save_as = None and it reads a `{{keyword}}` loop variable never bound by a producing node"
+        classification: caught
+        expect:
+          - rule: FC001
+            node: "for_each keyword in question_analysis.keywords"
+            var: question_analysis.keywords
+        reasoning: >-
+          FlowCheck finds the step broken for a different, concrete reason. `keyword` *is*
+          bound (it is the for_each variable), but the loop is `in: question_analysis.keywords`,
+          which AgentSPEX looks up as one flat key (control.py:167-169). So the loop runs once
+          with keyword = "question_analysis.keywords". The missing save_as (results dropped) is
+          not checked by FlowCheck (see swe/failed_workflow_2 item 2).
+
+  elaip/failed_workflow_3:
+    source: FormalAgentLib/StaticSemanticWorkflowExamples/ELAIP-Bench/failed_workflow_3.lean:1-10, 37-41
+    lean_verdict: "infoSound = false (failed_workflow_3.lean:383)"
+    stale: >-
+      The YAML was rewritten in Lean4Agent commit 17b2099 after the IR and this Lean file were
+      written (see the cross-check, category IR-stale-vs-YAML). The documented problem names
+      steps and variables (recheck_summary, option_judgment) that no longer exist in the YAML.
+    items:
+      - text: "NO consolidated verdict-validated option_judgment; finalize blocks on the missing option_judgment atom"
+        classification: needs-annotations
+        reasoning: >-
+          A validated, consolidated verdict is an output-quality property. In the current YAML
+          the finaliser reads combined_judgment, which exists on every path except a
+          zero-iteration recheck loop (FC002, a path-sensitivity false positive like
+          elaip/failed_workflow_1's).
+    extra_findings:
+      - rule: FC002
+        node: finalize_multi_answer
+        note: "combined_judgment is only written inside the recheck while loop; same pattern as elaip/failed_workflow_1."
+
+passed_findings:
+  - workflow: swe/passed_workflow_3
+    rule: FC002
+    node: create_patch
+    var: fix_description
+    verdict: false-positive
+    reasoning: >-
+      fix_description is only written inside `while fix_attempt < max_fix_attempts`. The loop
+      always runs at least once, because fix_attempt is set to 0 just before it and
+      max_fix_attempts is 3; the Lean4Agent IR records loop_executes_at_least_once: true. FlowCheck
+      is path-insensitive and must assume zero iterations. Phase two's feasibility oracle
+      would discharge this.
+  - workflow: elaip/passed_workflow_3
+    rule: FC001
+    node: "for_each keyword in question_keywords.keywords"
+    var: question_keywords.keywords
+    verdict: true-positive
+    reasoning: >-
+      A real bug that Lean4Agent passes. AgentSPEX looks up for_each `in` as one flat key
+      (control.py:167-169), so `in: question_keywords.keywords` iterates once over the literal
+      string "question_keywords.keywords", and search_paper_for_keyword searches for that
+      string instead of the extracted keywords. Lean4Agent's IR builder records only the
+      branch_path "for_each:keyword" and never models `in`, so it can't see this.
