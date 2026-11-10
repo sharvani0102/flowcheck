@@ -31,13 +31,18 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from flowcheck import __version__, check_file  # noqa: E402
 from flowcheck.cli import main as cli_main  # noqa: E402
+from flowcheck.checks import run_checks  # noqa: E402
 from flowcheck.crosscheck import benchmark_pairs, compare_all  # noqa: E402
+from flowcheck.mutate import GENERATORS, detected, generate  # noqa: E402
+from flowcheck.parser import parse_file, parse_text  # noqa: E402
 
 SPEC_RULES = {"FC001", "FC002", "FC003", "FC004"}
 OUT_JSON = ROOT / "results" / "phase1_eval.json"
 OUT_MD = ROOT / "docs" / "phase1-results.md"
 OUT_DEMO = ROOT / "results" / "demo.txt"
 ANNOTATIONS = ROOT / "results" / "annotations" / "lean4agent_problems.yaml"
+AGENTSPEX_REVIEW = ROOT / "results" / "annotations" / "agentspex_review.yaml"
+AGENTSPEX_DIR = REF / "AgentSPEX" / "workflows"
 CROSSCHECK = ROOT / "tests" / "crosscheck" / "expected_mismatches.yaml"
 DEMO_FILES = ["experiments/SWE_bench_verified/failed_workflow_3.yaml",
               "experiments/SWE_bench_verified/passed_workflow_1.yaml"]
@@ -166,6 +171,80 @@ def crosscheck_summary() -> Dict[str, Any]:
         "by_workflow": {w: {c: n for (w2, c), n in per.items() if w2 == w}
                         for w in sorted({e["workflow"] for e in doc["mismatches"]})},
         "categories": doc["categories"],
+    }
+
+
+# -- 4b: mutations ---------------------------------------------------------
+
+def run_mutations(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    by_type = {k: {"mutants": 0, "detected": 0} for k in GENERATORS}
+    misses, per_workflow = [], {}
+    for label, yaml_path, _ in benchmark_pairs(REF):
+        if not label.split("/")[1].startswith("passed"):
+            continue
+        wf = parse_file(yaml_path)
+        original = {f.key for f in run_checks(wf)}
+        counts = Counter()
+        for m in generate(wf):
+            mwf = parse_text(m.text(), str(yaml_path))
+            ok = detected(m, original, run_checks(mwf))
+            by_type[m.kind]["mutants"] += 1
+            by_type[m.kind]["detected"] += int(ok)
+            counts[m.kind] += 1
+            if not ok:
+                misses.append({"workflow": label, "kind": m.kind, "expected": m.expect_rule,
+                               "description": m.description})
+        per_workflow[label] = dict(counts)
+    for v in by_type.values():
+        v["recall"] = round(v["detected"] / v["mutants"], 3) if v["mutants"] else None
+    originals = [r for r in records if r["lean4agent_label"] == "passed"]
+    return {
+        "by_type": by_type,
+        "per_workflow": per_workflow,
+        "misses": misses,
+        "originals": {
+            "workflows": len(originals),
+            "with_any_finding": sum(1 for r in originals if r["findings"]),
+            "with_errors": sum(1 for r in originals if r["verdict"] == "fail"),
+        },
+    }
+
+
+# -- 4c: AgentSPEX example workflows -----------------------------------------
+
+def run_agentspex() -> Dict[str, Any]:
+    review = yaml.safe_load(AGENTSPEX_REVIEW.read_text())
+    reviews = review["findings"]
+    files, used = [], set()
+    for path in sorted(AGENTSPEX_DIR.rglob("*.yaml")):
+        res = check_file(str(path))
+        if res.parse_error:
+            raise EvalError(f"{rel(path)}: parse error: {res.parse_error}")
+        name = str(path.relative_to(AGENTSPEX_DIR))
+        out = []
+        for f in res.findings:
+            d = f.to_dict()
+            match = [i for i, v in enumerate(reviews)
+                     if v["file"] == name and _match(d, v["rule"], v["node"], v.get("var"))]
+            if not match:
+                raise EvalError(f"unreviewed AgentSPEX finding: {name} {f.rule_id} "
+                                f"{f.node_name} {f.variable}")
+            used.update(match)
+            v = reviews[match[0]]
+            if v["verdict"] not in ("real", "false-positive", "unsure"):
+                raise EvalError(f"bad verdict {v['verdict']!r} for {name}")
+            out.append(d | {"review": v["verdict"], "review_reasoning": v["reasoning"]})
+        files.append({"file": rel(path), "findings": out})
+    stale = [reviews[i] for i in range(len(reviews)) if i not in used]
+    if stale:
+        raise EvalError(f"stale AgentSPEX reviews: {stale}")
+    by_rule = Counter((f["rule_id"], f["review"]) for x in files for f in x["findings"])
+    return {
+        "files": files,
+        "totals": dict(Counter(f["review"] for x in files for f in x["findings"])),
+        "by_rule": {f"{r} {v}": n for (r, v), n in sorted(by_rule.items())},
+        "missed_issues": review.get("missed_issues") or [],
+        "no_findings_review": review.get("no_findings_review", ""),
     }
 
 
@@ -299,6 +378,95 @@ def render(data: Dict[str, Any]) -> str:
                 a(f"  hint: {md_escape(f['hint'])}")
         a("")
 
+    # 4b
+    mu = data["mutations"]
+    a("## 4b. Mutation testing")
+    a("")
+    a("Bugs were injected into the 6 passed workflows (`src/flowcheck/mutate.py`). A mutant is "
+      "created only where its expected rule is known from the workflow's structure, and it "
+      "counts as detected when a new finding with that rule (and variable, or node for FC004) "
+      "appears. Structural recall is high by construction: the mutants are exactly the "
+      "patterns the dataflow rules define. FC004's recall measures its phrase heuristic.")
+    a("")
+    a("| Mutation | Expected rule | Mutants | Detected | Recall |")
+    a("|---|---|---|---|---|")
+    rule_of = {"delete-producer": "FC001", "rename-read": "FC001",
+               "remove-branch-write": "FC002", "move-reader-before-writer": "FC001",
+               "parallel-no-export": "FC003", "step-to-task": "FC004"}
+    for k, v in mu["by_type"].items():
+        rec = "n/a (no applicable site)" if v["recall"] is None else f"{v['recall']:.0%}"
+        a(f"| {k} | {rule_of[k]} | {v['mutants']} | {v['detected']} | {rec} |")
+    o = mu["originals"]
+    a("")
+    a(f"Flag rate on the unmutated originals: {o['with_any_finding']} of {o['workflows']} "
+      f"passed workflows have at least one finding, {o['with_errors']} of {o['workflows']} "
+      "at least one error (reviewed in 4a).")
+    a("")
+    if mu["by_type"]["remove-branch-write"]["mutants"] == 0:
+        a("`remove-branch-write` has no applicable site in the passed workflows: no variable "
+          "is written on every arm of an `if`/`switch` and read afterwards without being "
+          "defined before it (the switch arms all write `final_response`, which nothing "
+          "reads). FC002 on this pattern is covered by the fixtures in `tests/fixtures/fc002/`.")
+        a("")
+    if mu["misses"]:
+        a("Missed mutants:")
+        a("")
+        a("| Workflow | Mutation | Description |")
+        a("|---|---|---|")
+        for x in mu["misses"]:
+            a(f"| `{x['workflow']}` | {x['kind']} | {md_escape(x['description'])} |")
+        a("")
+        if all(x["kind"] == "step-to-task" for x in mu["misses"]):
+            a("Every miss is an FC004 miss: these steps refer to earlier work with wording outside "
+              "the fixed phrase list (\"Now that you've explored the repository\", \"the code "
+              "you've read\", \"Now that you've reproduced the issue\", \"Continue exploring\", "
+              "\"Based on the reproduction and your codebase exploration\"). The list was fixed "
+              "before evaluation and is deliberately not extended here; a broader pattern "
+              "(\"you've <verb>\", \"your <noun>\") is a phase-two item.")
+            a("")
+    a("| Workflow | Mutants by type |")
+    a("|---|---|")
+    for w, c in mu["per_workflow"].items():
+        a(f"| `{w}` | " + (", ".join(f"{k} {n}" for k, n in c.items()) or "none") + " |")
+    a("")
+
+    # 4c
+    ax = data["agentspex"]
+    a("## 4c. AgentSPEX example workflows")
+    a("")
+    n_files = len(ax["files"])
+    n_find = sum(len(x["findings"]) for x in ax["files"])
+    t = ax["totals"]
+    a(f"{n_files} YAML files in `AgentSPEX/workflows/` (including `deep_research_with_module/` "
+      f"and `slack_templates/default.yaml`, which is a workflow). {n_find} findings, each "
+      f"reviewed by reading the YAML: **real {t.get('real', 0)}**, false positive "
+      f"{t.get('false-positive', 0)}, unsure {t.get('unsure', 0)}.")
+    a("")
+    a("| Rule | Review | Count |")
+    a("|---|---|---|")
+    for k, n in ax["by_rule"].items():
+        r, v = k.split(" ", 1)
+        a(f"| {r} | {v} | {n} |")
+    a("")
+    a("| File | Line | Finding | Review | Reasoning |")
+    a("|---|---|---|---|---|")
+    for x in ax["files"]:
+        name = x["file"].replace("AgentSPEX/workflows/", "")
+        if not x["findings"]:
+            a(f"| `{name}` | | none | | |")
+        for f in x["findings"]:
+            a(f"| `{name}` | {f['line']} | {short_finding(f)} | {f['review']} | "
+              f"{md_escape(f['review_reasoning'])} |")
+    a("")
+    a(f"Files with no findings: {md_escape(ax['no_findings_review'])}")
+    a("")
+    if ax["missed_issues"]:
+        a("Issues found while reviewing that FlowCheck does not report:")
+        a("")
+        for m in ax["missed_issues"]:
+            a(f"- `{m['file']}:{m['line']}`: {md_escape(m['issue'])}")
+        a("")
+
     # cross-check
     cc = data["crosscheck"]
     a("## Graph cross-check against Lean4Agent's IR")
@@ -337,6 +505,8 @@ def main() -> int:
                 for flag in ("errors", "any")
             ],
             "lean4agent_problems": review_problems(records),
+            "mutations": run_mutations(records),
+            "agentspex": run_agentspex(),
             "crosscheck": crosscheck_summary(),
         }
     except EvalError as e:

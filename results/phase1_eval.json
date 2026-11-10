@@ -680,6 +680,528 @@
       }
     ]
   },
+  "mutations": {
+    "by_type": {
+      "delete-producer": {
+        "mutants": 18,
+        "detected": 18,
+        "recall": 1.0
+      },
+      "rename-read": {
+        "mutants": 101,
+        "detected": 101,
+        "recall": 1.0
+      },
+      "remove-branch-write": {
+        "mutants": 0,
+        "detected": 0,
+        "recall": null
+      },
+      "move-reader-before-writer": {
+        "mutants": 13,
+        "detected": 13,
+        "recall": 1.0
+      },
+      "parallel-no-export": {
+        "mutants": 18,
+        "detected": 18,
+        "recall": 1.0
+      },
+      "step-to-task": {
+        "mutants": 12,
+        "detected": 7,
+        "recall": 0.583
+      }
+    },
+    "per_workflow": {
+      "swe/passed_workflow_1": {
+        "rename-read": 2,
+        "step-to-task": 4
+      },
+      "swe/passed_workflow_2": {
+        "rename-read": 2,
+        "step-to-task": 8
+      },
+      "swe/passed_workflow_3": {
+        "delete-producer": 6,
+        "rename-read": 19,
+        "move-reader-before-writer": 2,
+        "parallel-no-export": 6
+      },
+      "elaip/passed_workflow_1": {
+        "delete-producer": 5,
+        "rename-read": 30,
+        "move-reader-before-writer": 5,
+        "parallel-no-export": 5
+      },
+      "elaip/passed_workflow_2": {
+        "delete-producer": 3,
+        "rename-read": 21,
+        "move-reader-before-writer": 2,
+        "parallel-no-export": 3
+      },
+      "elaip/passed_workflow_3": {
+        "delete-producer": 4,
+        "rename-read": 27,
+        "move-reader-before-writer": 4,
+        "parallel-no-export": 4
+      }
+    },
+    "misses": [
+      {
+        "workflow": "swe/passed_workflow_1",
+        "kind": "step-to-task",
+        "expected": "FC004",
+        "description": "turn step 'reproduce_issue' (history is its only source of earlier work) into a task"
+      },
+      {
+        "workflow": "swe/passed_workflow_1",
+        "kind": "step-to-task",
+        "expected": "FC004",
+        "description": "turn step 'fix_issue' (history is its only source of earlier work) into a task"
+      },
+      {
+        "workflow": "swe/passed_workflow_2",
+        "kind": "step-to-task",
+        "expected": "FC004",
+        "description": "turn step 'explore_codebase' (history is its only source of earlier work) into a task"
+      },
+      {
+        "workflow": "swe/passed_workflow_2",
+        "kind": "step-to-task",
+        "expected": "FC004",
+        "description": "turn step 'reproduce_issue' (history is its only source of earlier work) into a task"
+      },
+      {
+        "workflow": "swe/passed_workflow_2",
+        "kind": "step-to-task",
+        "expected": "FC004",
+        "description": "turn step 'identify_root_cause' (history is its only source of earlier work) into a task"
+      }
+    ],
+    "originals": {
+      "workflows": 6,
+      "with_any_finding": 4,
+      "with_errors": 1
+    }
+  },
+  "agentspex": {
+    "files": [
+      {
+        "file": "AgentSPEX/workflows/checkpoint_resume_smoke.yaml",
+        "findings": [
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[0]",
+            "message": "step type 'save' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "save:write_marker",
+            "node_type": "unsupported",
+            "line": 12,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written."
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[2]",
+            "message": "step type 'save' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "save:write_done",
+            "node_type": "unsupported",
+            "line": 28,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written."
+          }
+        ]
+      },
+      {
+        "file": "AgentSPEX/workflows/checkpoint_resume_stateful.yaml",
+        "findings": [
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[4]",
+            "message": "step type 'save' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "save:write_done",
+            "node_type": "unsupported",
+            "line": 47,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written."
+          }
+        ]
+      },
+      {
+        "file": "AgentSPEX/workflows/deep_research.yaml",
+        "findings": [
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[6]",
+            "message": "step type 'synthesize' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "synthesize:comprehensive_report",
+            "node_type": "unsupported",
+            "line": 47,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced."
+          }
+        ]
+      },
+      {
+        "file": "AgentSPEX/workflows/deep_research_with_module/deep_research_main.yaml",
+        "findings": []
+      },
+      {
+        "file": "AgentSPEX/workflows/deep_research_with_module/modules/extract_content_learnings.yaml",
+        "findings": []
+      },
+      {
+        "file": "AgentSPEX/workflows/deep_research_with_module/modules/extraction.yaml",
+        "findings": []
+      },
+      {
+        "file": "AgentSPEX/workflows/deep_research_with_module/modules/process_serp_query.yaml",
+        "findings": []
+      },
+      {
+        "file": "AgentSPEX/workflows/deep_research_with_module/modules/process_user_query.yaml",
+        "findings": []
+      },
+      {
+        "file": "AgentSPEX/workflows/deep_research_with_module/modules/web_search.yaml",
+        "findings": []
+      },
+      {
+        "file": "AgentSPEX/workflows/discover_arxiv_research.yaml",
+        "findings": [
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[3]",
+            "message": "step type 'discover' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "discover:paper_paths",
+            "node_type": "unsupported",
+            "line": 34,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows)."
+          },
+          {
+            "rule_id": "FC001",
+            "severity": "error",
+            "node_id": "workflow[4].for_each",
+            "message": "no step before this loop writes 'paper_paths', so for_each runs once over the literal string 'paper_paths' (control.py:167-169)",
+            "hint": "did you mean 'paper_path'?",
+            "node_name": "for_each paper_path in paper_paths",
+            "node_type": "for_each",
+            "line": 41,
+            "variable": "paper_paths",
+            "review": "real",
+            "review_reasoning": "Real issue, a consequence of the skipped discover step above: nothing defines 'paper_paths', so AgentSPEX's for_each falls back to [\"paper_paths\"] (control.py:167-169) and runs the body once with the variable name as the item. (In this file the loop also has limit: \"{{max_papers}}\", which is not templated, so slicing raises TypeError before the body runs at all; FlowCheck misses that part, see missed_issues.)"
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[5]",
+            "message": "step type 'synthesize' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "synthesize:comprehensive_research_synthesis",
+            "node_type": "unsupported",
+            "line": 50,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced."
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[6]",
+            "message": "step type 'save' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "save:paper_references",
+            "node_type": "unsupported",
+            "line": 56,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written."
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[7]",
+            "message": "step type 'evaluate' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "evaluate:research_quality_score",
+            "node_type": "unsupported",
+            "line": 62,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'evaluate' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). The quality score is never produced."
+          }
+        ]
+      },
+      {
+        "file": "AgentSPEX/workflows/interactive_deep_research_v3.yaml",
+        "findings": [
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[1]",
+            "message": "step type 'discover' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "discover:feedback_questions",
+            "node_type": "unsupported",
+            "line": 33,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows)."
+          },
+          {
+            "rule_id": "FC001",
+            "severity": "error",
+            "node_id": "workflow[3].for_each",
+            "message": "no step before this loop writes 'feedback_questions', so for_each runs once over the literal string 'feedback_questions' (control.py:167-169)",
+            "hint": "did you mean 'feedback_questions_json'?",
+            "node_name": "for_each question in feedback_questions",
+            "node_type": "for_each",
+            "line": 45,
+            "variable": "feedback_questions",
+            "review": "real",
+            "review_reasoning": "Real issue, a consequence of the skipped discover step above: nothing defines 'feedback_questions', so AgentSPEX's for_each falls back to [\"feedback_questions\"] (control.py:167-169) and runs the body once with the variable name as the item."
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[7].while.steps[1].for_each.steps[1]",
+            "message": "step type 'discover' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "discover:serp_queries",
+            "node_type": "unsupported",
+            "line": 141,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows)."
+          },
+          {
+            "rule_id": "FC001",
+            "severity": "error",
+            "node_id": "workflow[7].while.steps[1].for_each.steps[3].for_each",
+            "message": "no step before this loop writes 'serp_queries', so for_each runs once over the literal string 'serp_queries' (control.py:167-169)",
+            "hint": "did you mean 'serp_queries_json'?",
+            "node_name": "for_each serp_entry in serp_queries",
+            "node_type": "for_each",
+            "line": 153,
+            "variable": "serp_queries",
+            "review": "real",
+            "review_reasoning": "Real issue, a consequence of the skipped discover step above: nothing defines 'serp_queries', so AgentSPEX's for_each falls back to [\"serp_queries\"] (control.py:167-169) and runs the body once with the variable name as the item."
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[7].while.steps[1].for_each.steps[3].for_each.steps[3]",
+            "message": "step type 'discover' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "discover:downloaded_content_path",
+            "node_type": "unsupported",
+            "line": 185,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows)."
+          },
+          {
+            "rule_id": "FC001",
+            "severity": "error",
+            "node_id": "workflow[7].while.steps[1].for_each.steps[3].for_each.steps[6].for_each",
+            "message": "no step before this loop writes 'downloaded_content_path', so for_each runs once over the literal string 'downloaded_content_path' (control.py:167-169)",
+            "hint": "produce 'downloaded_content_path' earlier with save_as, or declare it under parameters:",
+            "node_name": "for_each path in downloaded_content_path",
+            "node_type": "for_each",
+            "line": 231,
+            "variable": "downloaded_content_path",
+            "review": "real",
+            "review_reasoning": "Real issue, a consequence of the skipped discover step above: nothing defines 'downloaded_content_path', so AgentSPEX's for_each falls back to [\"downloaded_content_path\"] (control.py:167-169) and runs the body once with the variable name as the item."
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[7].while.steps[1].for_each.steps[3].for_each.steps[8]",
+            "message": "step type 'discover' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "discover:current_followup",
+            "node_type": "unsupported",
+            "line": 280,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows)."
+          },
+          {
+            "rule_id": "FC001",
+            "severity": "error",
+            "node_id": "workflow[7].while.steps[1].for_each.steps[3].for_each.steps[9].step",
+            "message": "its instruction uses {{current_followup}} but no step before it writes 'current_followup' and it is not a parameter or built-in; AgentSPEX sends the placeholder to the LLM as literal text (templates.py:19-20)",
+            "hint": "produce 'current_followup' earlier with save_as, or declare it under parameters:",
+            "node_name": "format_next_query",
+            "node_type": "step",
+            "line": 287,
+            "variable": "current_followup",
+            "review": "real",
+            "review_reasoning": "Real issue: current_followup was meant to come from the skipped discover step, so {{current_followup}} reaches the LLM as literal text."
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[8]",
+            "message": "step type 'synthesize' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "synthesize:final_deep_research_report",
+            "node_type": "unsupported",
+            "line": 337,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced."
+          }
+        ]
+      },
+      {
+        "file": "AgentSPEX/workflows/iterative_deep_research.yaml",
+        "findings": [
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[2].while.steps[1]",
+            "message": "step type 'discover' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "discover:iteration_queries",
+            "node_type": "unsupported",
+            "line": 70,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows)."
+          },
+          {
+            "rule_id": "FC001",
+            "severity": "error",
+            "node_id": "workflow[2].while.steps[2].for_each",
+            "message": "no step before this loop writes 'iteration_queries', so for_each runs once over the literal string 'iteration_queries' (control.py:167-169)",
+            "hint": "produce 'iteration_queries' earlier with save_as, or declare it under parameters:",
+            "node_name": "for_each query in iteration_queries",
+            "node_type": "for_each",
+            "line": 77,
+            "variable": "iteration_queries",
+            "review": "real",
+            "review_reasoning": "Real issue, a consequence of the skipped discover step above: nothing defines 'iteration_queries', so AgentSPEX's for_each falls back to [\"iteration_queries\"] (control.py:167-169) and runs the body once with the variable name as the item."
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[3]",
+            "message": "step type 'synthesize' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "synthesize:iterative_research_synthesis",
+            "node_type": "unsupported",
+            "line": 119,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced."
+          }
+        ]
+      },
+      {
+        "file": "AgentSPEX/workflows/modules/multi_step_dummy.yaml",
+        "findings": [
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[0]",
+            "message": "step type 'save' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "save:step1_marker",
+            "node_type": "unsupported",
+            "line": 9,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written."
+          },
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[3]",
+            "message": "step type 'save' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "save:step4_marker",
+            "node_type": "unsupported",
+            "line": 35,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written."
+          }
+        ]
+      },
+      {
+        "file": "AgentSPEX/workflows/quickstart.yaml",
+        "findings": [
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[1]",
+            "message": "step type 'synthesize' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "synthesize:summary",
+            "node_type": "unsupported",
+            "line": 17,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced."
+          }
+        ]
+      },
+      {
+        "file": "AgentSPEX/workflows/slack_templates/default.yaml",
+        "findings": []
+      },
+      {
+        "file": "AgentSPEX/workflows/test_memory_system.yaml",
+        "findings": [
+          {
+            "rule_id": "FC005",
+            "severity": "error",
+            "node_id": "workflow[5]",
+            "message": "step type 'synthesize' is not supported by the current AgentSPEX interpreter; it is silently skipped and writes nothing (interpreter.py:191-206, 360-362)",
+            "hint": "rewrite it as a supported step (e.g. 'task' with save_as)",
+            "node_name": "synthesize:memory_test_synthesis",
+            "node_type": "unsupported",
+            "line": 73,
+            "variable": null,
+            "review": "real",
+            "review_reasoning": "Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced."
+          }
+        ]
+      }
+    ],
+    "totals": {
+      "real": 25
+    },
+    "by_rule": {
+      "FC001 real": 6,
+      "FC005 real": 19
+    },
+    "missed_issues": [
+      {
+        "file": "discover_arxiv_research.yaml",
+        "line": 43,
+        "issue": "for_each `limit: \"{{max_papers}}\"`: limit is not template-expanded, and iteration_list[:\"{{max_papers}}\"] raises TypeError (control.py:175-176), so the whole loop step fails. The semantics doc records this (\u00a73.9), but no FlowCheck rule checks it; an FC005 trap for a non-integer limit would. Found while reviewing, not added during evaluation."
+      }
+    ],
+    "no_findings_review": "deep_research_with_module/ (main + 5 modules) and slack_templates/default.yaml have no findings. Reading them: every {{...}} read is a declared parameter, a loop variable, or a save_as written earlier, module-form parallel blocks set max_workers, and modules return values through `return:`. Their remaining risks (JSON shape of LLM outputs, parameters passed as strings) are field-level and out of scope for phase one."
+  },
   "crosscheck": {
     "total": 103,
     "by_category": {

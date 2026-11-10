@@ -24,6 +24,13 @@ All notable changes to FlowCheck are listed here.
 - FC004 isolated-context (warning): fixed phrase list and fixtures, added
   before FC004 was run on any benchmark workflow.
 
+- `mutate.py` and Step 4b in `evaluate.py`: six mutation types injected into
+  the passed workflows, with recall per type.
+- Step 4c in `evaluate.py`: every finding on AgentSPEX's example workflows,
+  reviewed in `results/annotations/agentspex_review.yaml`.
+- README: install, usage, rules, FC004 caveats, results, limitations,
+  reproduction steps, and credits.
+
 ### Changed
 - Step 4a re-run with FC004; annotations, results doc and README numbers updated.
 - FC004 quotes the earliest matching phrase in the instruction (presentation

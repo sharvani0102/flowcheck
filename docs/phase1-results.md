@@ -205,6 +205,94 @@ Problems FlowCheck reports that Lean4Agent doesn't list:
 - line 224: warning **FC002** [finalize_multi_answer] {{combined_judgment}} may be undefined here: it is not written when `while recheck_count < 3` runs zero times (line 195)  
   hint: make sure 'combined_judgment' is written on every path, e.g. initialise it with set_variable before the branch or loop
 
+## 4b. Mutation testing
+
+Bugs were injected into the 6 passed workflows (`src/flowcheck/mutate.py`). A mutant is created only where its expected rule is known from the workflow's structure, and it counts as detected when a new finding with that rule (and variable, or node for FC004) appears. Structural recall is high by construction: the mutants are exactly the patterns the dataflow rules define. FC004's recall measures its phrase heuristic.
+
+| Mutation | Expected rule | Mutants | Detected | Recall |
+|---|---|---|---|---|
+| delete-producer | FC001 | 18 | 18 | 100% |
+| rename-read | FC001 | 101 | 101 | 100% |
+| remove-branch-write | FC002 | 0 | 0 | n/a (no applicable site) |
+| move-reader-before-writer | FC001 | 13 | 13 | 100% |
+| parallel-no-export | FC003 | 18 | 18 | 100% |
+| step-to-task | FC004 | 12 | 7 | 58% |
+
+Flag rate on the unmutated originals: 4 of 6 passed workflows have at least one finding, 1 of 6 at least one error (reviewed in 4a).
+
+`remove-branch-write` has no applicable site in the passed workflows: no variable is written on every arm of an `if`/`switch` and read afterwards without being defined before it (the switch arms all write `final_response`, which nothing reads). FC002 on this pattern is covered by the fixtures in `tests/fixtures/fc002/`.
+
+Missed mutants:
+
+| Workflow | Mutation | Description |
+|---|---|---|
+| `swe/passed_workflow_1` | step-to-task | turn step 'reproduce_issue' (history is its only source of earlier work) into a task |
+| `swe/passed_workflow_1` | step-to-task | turn step 'fix_issue' (history is its only source of earlier work) into a task |
+| `swe/passed_workflow_2` | step-to-task | turn step 'explore_codebase' (history is its only source of earlier work) into a task |
+| `swe/passed_workflow_2` | step-to-task | turn step 'reproduce_issue' (history is its only source of earlier work) into a task |
+| `swe/passed_workflow_2` | step-to-task | turn step 'identify_root_cause' (history is its only source of earlier work) into a task |
+
+Every miss is an FC004 miss: these steps refer to earlier work with wording outside the fixed phrase list ("Now that you've explored the repository", "the code you've read", "Now that you've reproduced the issue", "Continue exploring", "Based on the reproduction and your codebase exploration"). The list was fixed before evaluation and is deliberately not extended here; a broader pattern ("you've <verb>", "your <noun>") is a phase-two item.
+
+| Workflow | Mutants by type |
+|---|---|
+| `swe/passed_workflow_1` | rename-read 2, step-to-task 4 |
+| `swe/passed_workflow_2` | rename-read 2, step-to-task 8 |
+| `swe/passed_workflow_3` | delete-producer 6, rename-read 19, move-reader-before-writer 2, parallel-no-export 6 |
+| `elaip/passed_workflow_1` | delete-producer 5, rename-read 30, move-reader-before-writer 5, parallel-no-export 5 |
+| `elaip/passed_workflow_2` | delete-producer 3, rename-read 21, move-reader-before-writer 2, parallel-no-export 3 |
+| `elaip/passed_workflow_3` | delete-producer 4, rename-read 27, move-reader-before-writer 4, parallel-no-export 4 |
+
+## 4c. AgentSPEX example workflows
+
+16 YAML files in `AgentSPEX/workflows/` (including `deep_research_with_module/` and `slack_templates/default.yaml`, which is a workflow). 25 findings, each reviewed by reading the YAML: **real 25**, false positive 0, unsure 0.
+
+| Rule | Review | Count |
+|---|---|---|
+| FC001 | real | 6 |
+| FC005 | real | 19 |
+
+| File | Line | Finding | Review | Reasoning |
+|---|---|---|---|---|
+| `checkpoint_resume_smoke.yaml` | 12 | FC005(E) @ save:write_marker | real | Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written. |
+| `checkpoint_resume_smoke.yaml` | 28 | FC005(E) @ save:write_done | real | Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written. |
+| `checkpoint_resume_stateful.yaml` | 47 | FC005(E) @ save:write_done | real | Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written. |
+| `deep_research.yaml` | 47 | FC005(E) @ synthesize:comprehensive_report | real | Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced. |
+| `deep_research_with_module/deep_research_main.yaml` | | none | | |
+| `deep_research_with_module/modules/extract_content_learnings.yaml` | | none | | |
+| `deep_research_with_module/modules/extraction.yaml` | | none | | |
+| `deep_research_with_module/modules/process_serp_query.yaml` | | none | | |
+| `deep_research_with_module/modules/process_user_query.yaml` | | none | | |
+| `deep_research_with_module/modules/web_search.yaml` | | none | | |
+| `discover_arxiv_research.yaml` | 34 | FC005(E) @ discover:paper_paths | real | Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows). |
+| `discover_arxiv_research.yaml` | 41 | FC001(E) `paper_paths` @ for_each paper_path in paper_paths | real | Real issue, a consequence of the skipped discover step above: nothing defines 'paper_paths', so AgentSPEX's for_each falls back to ["paper_paths"] (control.py:167-169) and runs the body once with the variable name as the item. (In this file the loop also has limit: "{{max_papers}}", which is not templated, so slicing raises TypeError before the body runs at all; FlowCheck misses that part, see missed_issues.) |
+| `discover_arxiv_research.yaml` | 50 | FC005(E) @ synthesize:comprehensive_research_synthesis | real | Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced. |
+| `discover_arxiv_research.yaml` | 56 | FC005(E) @ save:paper_references | real | Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. |
+| `discover_arxiv_research.yaml` | 62 | FC005(E) @ evaluate:research_quality_score | real | Real issue. The current AgentSPEX interpreter has no handler for 'evaluate' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). The quality score is never produced. |
+| `interactive_deep_research_v3.yaml` | 33 | FC005(E) @ discover:feedback_questions | real | Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows). |
+| `interactive_deep_research_v3.yaml` | 45 | FC001(E) `feedback_questions` @ for_each question in feedback_questions | real | Real issue, a consequence of the skipped discover step above: nothing defines 'feedback_questions', so AgentSPEX's for_each falls back to ["feedback_questions"] (control.py:167-169) and runs the body once with the variable name as the item. |
+| `interactive_deep_research_v3.yaml` | 141 | FC005(E) @ discover:serp_queries | real | Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows). |
+| `interactive_deep_research_v3.yaml` | 153 | FC001(E) `serp_queries` @ for_each serp_entry in serp_queries | real | Real issue, a consequence of the skipped discover step above: nothing defines 'serp_queries', so AgentSPEX's for_each falls back to ["serp_queries"] (control.py:167-169) and runs the body once with the variable name as the item. |
+| `interactive_deep_research_v3.yaml` | 185 | FC005(E) @ discover:downloaded_content_path | real | Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows). |
+| `interactive_deep_research_v3.yaml` | 231 | FC001(E) `downloaded_content_path` @ for_each path in downloaded_content_path | real | Real issue, a consequence of the skipped discover step above: nothing defines 'downloaded_content_path', so AgentSPEX's for_each falls back to ["downloaded_content_path"] (control.py:167-169) and runs the body once with the variable name as the item. |
+| `interactive_deep_research_v3.yaml` | 280 | FC005(E) @ discover:current_followup | real | Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows). |
+| `interactive_deep_research_v3.yaml` | 287 | FC001(E) `current_followup` @ format_next_query | real | Real issue: current_followup was meant to come from the skipped discover step, so {{current_followup}} reaches the LLM as literal text. |
+| `interactive_deep_research_v3.yaml` | 337 | FC005(E) @ synthesize:final_deep_research_report | real | Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced. |
+| `iterative_deep_research.yaml` | 70 | FC005(E) @ discover:iteration_queries | real | Real issue. The current AgentSPEX interpreter has no handler for 'discover' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its list variable is never created, which breaks the for_each that consumes it (the FC001 finding that follows). |
+| `iterative_deep_research.yaml` | 77 | FC001(E) `iteration_queries` @ for_each query in iteration_queries | real | Real issue, a consequence of the skipped discover step above: nothing defines 'iteration_queries', so AgentSPEX's for_each falls back to ["iteration_queries"] (control.py:167-169) and runs the body once with the variable name as the item. |
+| `iterative_deep_research.yaml` | 119 | FC005(E) @ synthesize:iterative_research_synthesis | real | Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced. |
+| `modules/multi_step_dummy.yaml` | 9 | FC005(E) @ save:step1_marker | real | Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written. |
+| `modules/multi_step_dummy.yaml` | 35 | FC005(E) @ save:step4_marker | real | Real issue. The current AgentSPEX interpreter has no handler for 'save' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Whatever file it was meant to write is never written. This checkpoint/resume test workflow uses save steps to write marker files; under the current engine those markers are never written. |
+| `quickstart.yaml` | 17 | FC005(E) @ synthesize:summary | real | Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced. |
+| `slack_templates/default.yaml` | | none | | |
+| `test_memory_system.yaml` | 73 | FC005(E) @ synthesize:memory_test_synthesis | real | Real issue. The current AgentSPEX interpreter has no handler for 'synthesize' (it is not in the step-type set at interpreter.py:191-206, and no other harness code handles it), so the step is logged as unknown and skipped (interpreter.py:360-362). Its output_file (the report it was meant to write) is never produced. |
+
+Files with no findings: deep_research_with_module/ (main + 5 modules) and slack_templates/default.yaml have no findings. Reading them: every {{...}} read is a declared parameter, a loop variable, or a save_as written earlier, module-form parallel blocks set max_workers, and modules return values through `return:`. Their remaining risks (JSON shape of LLM outputs, parameters passed as strings) are field-level and out of scope for phase one.
+
+Issues found while reviewing that FlowCheck does not report:
+
+- `discover_arxiv_research.yaml:43`: for_each `limit: "{{max_papers}}"`: limit is not template-expanded, and iteration_list[:"{{max_papers}}"] raises TypeError (control.py:175-176), so the whole loop step fails. The semantics doc records this (§3.9), but no FlowCheck rule checks it; an FC005 trap for a non-integer limit would. Found while reviewing, not added during evaluation.
+
 ## Graph cross-check against Lean4Agent's IR
 
 FlowCheck's parsed nodes, edges, reads and writes were compared with the 12 IR files in `FormalAgentLib/VerificationExamples/`. **103 differences**, every one reviewed in `tests/crosscheck/expected_mismatches.yaml`; `pytest` fails if that list and the computed differences ever disagree. None is a FlowCheck bug.
