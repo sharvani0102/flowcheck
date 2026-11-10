@@ -28,8 +28,9 @@ All notable changes to FlowCheck are listed here.
   the passed workflows, with recall per type.
 - Step 4c in `evaluate.py`: every finding on AgentSPEX's example workflows,
   reviewed in `results/annotations/agentspex_review.yaml`.
-- README: install, usage, rules, FC004 caveats, results, limitations,
-  reproduction steps, and credits.
+- README: install, usage, rules, FC004 caveats, results, limitations, gaps and
+  next steps, how FlowCheck fits in front of Lean4Agent's pipeline, library
+  usage and extension points, reproduction steps, and credits.
 
 ### Changed
 - Step 4a re-run with FC004; annotations, results doc and README numbers updated.

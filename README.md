@@ -169,12 +169,123 @@ The results in this repository were produced against Lean4Agent commit `e6a78cb`
 isn't caught, and a verdict on each finding). `evaluate.py` fails if a review is missing,
 or if it claims a finding that FlowCheck doesn't actually report.
 
+## Gaps and next steps
+What phase one shows FlowCheck can't do yet, roughly in order of impact:
+
+1. **FlowCheck can't follow which paths actually run.** It assumes any loop might run zero
+   times, which caused every FC002 warning on the benchmarks; three of them are false
+   positives because the loop always runs.
+2. **FC004's phrase list misses wording outside it.** It caught 7 of 12 injected cases, and
+   it raises false alarms on forward references.
+3. **Problems about what an output means need annotations.** Ungrounded evidence, a stale
+   verification and a missing retry can't be seen from the YAML alone. These are the 8
+   annotation-dependent problems in the Lean4Agent comparison.
+4. **Outputs that are produced and then dropped aren't checked**, for example a loop step
+   with no `save_as`. Two of the 3 FlowCheck gaps are this.
+
+Phase two should tackle them in this order:
+1. **A Z3-based path-feasibility check**, plugged into the existing `FeasibilityOracle` hook.
+   This removes the FC002 false positives; Lean4Agent's IR already records
+   `loop_executes_at_least_once` for some loops, which gives ready-made test cases.
+2. **Read Lean4Agent's per-step precondition/postcondition annotations**, to cover the
+   meaning-level problems.
+3. **Two cheap structural rules:** a "discarded output" check and a non-integer `limit` check.
+
 ## Relationship to Lean4Agent
 [Lean4Agent](https://github.com/RickySkywalker/Lean4Agent) (MIT) formally verifies agent
 workflows in Lean 4, which requires an LLM-written specification and a Lean build for each
 workflow. FlowCheck is a lightweight first pass: it catches the information-flow bugs that
 are visible from the YAML alone, in under a second, so a broken workflow can be fixed before
 full verification. It is evaluated against Lean4Agent's published verdicts.
+
+| | FlowCheck | Lean4Agent (FormalAgentLib Layer 2) |
+|---|---|---|
+| Input | the AgentSPEX YAML | the YAML plus a Lean spec with per-step pre/postconditions, written by an LLM agent |
+| Needs | Python and PyYAML | Docker, an LLM, the Lean 4 toolchain and a Mathlib build |
+| Time per workflow | milliseconds | minutes or more (spec authoring and `lake build`) |
+| Checks | which variables exist on which paths; runtime traps | the meaning of each step's inputs and outputs; goal coverage |
+| Guarantee | the variable-level checks are certain; FC002 and FC004 are warnings | a machine-checked proof under the stated annotations |
+
+They are complementary. FlowCheck catches the cheap, certain mistakes first. Lean4Agent then
+proves the properties that need annotations.
+
+## Using FlowCheck with Lean4Agent
+These are ways to put FlowCheck in front of Lean4Agent's existing steps. None of them
+changes Lean4Agent; a proper integration (a PR to Lean4Agent) is planned for a later phase.
+
+**1. As a gate before formal verification.** A workflow that fails FlowCheck has a defect
+that no annotation can fix, so there's no point paying for a Lean spec or a build:
+
+```bash
+flowcheck experiments/elaipbench/passed_workflow_1.yaml \
+  && (cd FormalAgentLib && lake build StaticSemanticWorkflowExamples.«ELAIP-Bench».passed_workflow_1)
+```
+
+Exit code 1 (errors) stops the chain. Warnings (exit code 0) let it continue, so FC002 and
+FC004 stay advisory.
+
+**2. Before a benchmark run.** The same gate works in front of Lean4Agent's experiment
+runners, so a broken workflow isn't run over a whole dataset:
+
+```bash
+flowcheck "$WORKFLOW" && python experiments/elaipbench/run.py --workflow-file "$WORKFLOW" ...
+```
+
+**3. Inside LeanEvolve.** LeanEvolve rewrites a failing workflow and re-runs it. Running
+FlowCheck on each rewritten YAML before the re-run (CLI, or `check_file` below) would catch
+rewrites that broke the information flow, without another Lean build or LLM run. This hook
+isn't built yet.
+
+**4. To check Lean4Agent's own artefacts.** `flowcheck.crosscheck.compare` compares a YAML
+with its Layer-2 IR JSON and lists every structural difference. In phase one it showed that
+two shipped IR files no longer match their YAML. The ELAIP `failed_workflow_3` YAML was
+rewritten after its IR and Lean proof were made.
+
+## Using FlowCheck as a library
+The pieces are separate modules, so each can be used or replaced on its own:
+
+```
+yamlload.py    YAML loading with line numbers and ${VAR:-default} handling
+parser.py      AgentSPEX YAML  ->  ir.Workflow (control-flow graph, reads, writes, scopes)
+dataflow.py    may/must analyses, witness paths, the FeasibilityOracle hook
+checks/        one module per rule (fc001 ... fc005) plus a registry
+report.py      text and JSON output;  cli.py: the flowcheck command
+crosscheck.py  compare FlowCheck's IR with a Lean4Agent Layer-2 IR JSON
+mutate.py      generate buggy variants of a workflow for testing
+```
+
+```python
+from flowcheck import check_file, parse_file
+from flowcheck.checks import run_checks
+from flowcheck.crosscheck import compare
+
+# One call: parse and run every rule.
+res = check_file("experiments/elaipbench/failed_workflow_2.yaml")
+print(res.verdict)                                  # "fail" | "warn" | "pass" | "parse-error"
+for f in res.findings:
+    print(f.rule_id, f.severity, f.line, f.node_name, f.variable, f.message)
+
+# Or step by step: work with the graph, choose rules, plug in an oracle.
+wf = parse_file("experiments/elaipbench/failed_workflow_2.yaml")
+findings = run_checks(wf, rules=["FC001", "FC004"])
+
+# Compare a workflow with its Lean4Agent IR.
+mismatches = compare("elaip/failed_workflow_3",
+                     "experiments/elaipbench/failed_workflow_3.yaml",
+                     "FormalAgentLib/VerificationExamples/elaipbench_layer2/failed_workflow_3_layer2.ir.json")
+```
+
+Ways to extend it:
+- **Add a rule.** Write `checks/fcNNN_name.py` with a `check(analysis) -> list[Finding]`
+  function and add it to `CHECKS` in `checks/__init__.py`. The shared `Analysis` object gives
+  every rule the dataflow states, the writers of each variable, and reachability.
+- **Add path reasoning.** Pass any object with
+  `check(workflow, path) -> True | False | None` as `oracle=` to `run_checks`. FC002 asks it
+  about each witness path, and drops the finding when the answer is `False` (infeasible).
+  This is where the phase-two Z3 check plugs in.
+- **Use the JSON output in CI.** `flowcheck --format json` reports every finding with its
+  rule, severity, line, node, variable, message and hint; the exit code works as a pass/fail
+  gate.
 
 FlowCheck doesn't include Lean4Agent code. It mirrors two of AgentSPEX's regular expressions
 so it parses templates and conditions exactly as the runtime does; see
