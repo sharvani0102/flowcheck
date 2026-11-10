@@ -1,7 +1,7 @@
 {
   "flowcheck_version": "0.1.0",
   "reference_commit": "e6a78cb",
-  "fc004_implemented": false,
+  "fc004_implemented": true,
   "benchmarks": [
     {
       "id": "swe/passed_workflow_1",
@@ -18,10 +18,24 @@
       "benchmark": "SWE-Bench Verified",
       "file": "experiments/SWE_bench_verified/passed_workflow_2.yaml",
       "lean4agent_label": "passed",
-      "verdict": "pass",
-      "verdict_spec_rules": "pass",
-      "counts": {},
-      "findings": []
+      "verdict": "warn",
+      "verdict_spec_rules": "warn",
+      "counts": {
+        "FC004": 1
+      },
+      "findings": [
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[0].step",
+          "message": "its instruction says \"your fix\", referring to earlier work, but this is a step with no earlier step in its history (tasks don't add to it) and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "save the earlier result with save_as and pass it with {{...}}",
+          "node_name": "present_problem",
+          "node_type": "step",
+          "line": 37,
+          "variable": null
+        }
+      ]
     },
     {
       "id": "swe/passed_workflow_3",
@@ -52,10 +66,46 @@
       "benchmark": "SWE-Bench Verified",
       "file": "experiments/SWE_bench_verified/failed_workflow_1.yaml",
       "lean4agent_label": "failed",
-      "verdict": "pass",
-      "verdict_spec_rules": "pass",
-      "counts": {},
-      "findings": []
+      "verdict": "warn",
+      "verdict_spec_rules": "warn",
+      "counts": {
+        "FC004": 3
+      },
+      "findings": [
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[2].task",
+          "message": "its instruction says \"your fix\", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "save the earlier result with save_as and pass it with {{...}}",
+          "node_name": "implement_fix",
+          "node_type": "task",
+          "line": 108,
+          "variable": null
+        },
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[3].task",
+          "message": "its instruction says \"your fix\", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "save the earlier result with save_as and pass it with {{...}}",
+          "node_name": "verify_fix",
+          "node_type": "task",
+          "line": 134,
+          "variable": null
+        },
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[4].task",
+          "message": "its instruction says \"Your fix\", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "save the earlier result with save_as and pass it with {{...}}",
+          "node_name": "submit_patch",
+          "node_type": "task",
+          "line": 155,
+          "variable": null
+        }
+      ]
     },
     {
       "id": "swe/failed_workflow_2",
@@ -63,9 +113,10 @@
       "file": "experiments/SWE_bench_verified/failed_workflow_2.yaml",
       "lean4agent_label": "failed",
       "verdict": "fail",
-      "verdict_spec_rules": "pass",
+      "verdict_spec_rules": "warn",
       "counts": {
-        "FC005": 1
+        "FC005": 1,
+        "FC004": 1
       },
       "findings": [
         {
@@ -78,6 +129,17 @@
           "node_type": "if",
           "line": 137,
           "variable": null
+        },
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[7].task",
+          "message": "its instruction says \"your changes\", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "pass the earlier result explicitly, e.g. {{diagnosis}} or {{edge_case_list}} or {{fix_result}}",
+          "node_name": "create_and_submit_patch",
+          "node_type": "task",
+          "line": 275,
+          "variable": null
         }
       ]
     },
@@ -87,11 +149,34 @@
       "file": "experiments/SWE_bench_verified/failed_workflow_3.yaml",
       "lean4agent_label": "failed",
       "verdict": "fail",
-      "verdict_spec_rules": "pass",
+      "verdict_spec_rules": "warn",
       "counts": {
+        "FC004": 3,
         "FC005": 2
       },
       "findings": [
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[0].task",
+          "message": "its instruction says \"your fix\", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "save the earlier result with save_as and pass it with {{...}}",
+          "node_name": "orient_and_scan",
+          "node_type": "task",
+          "line": 38,
+          "variable": null
+        },
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[2].task",
+          "message": "its instruction names 'candidate_files_report' in plain text, referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "pass the earlier result explicitly, e.g. {{candidate_files_report}}",
+          "node_name": "candidate_file_list",
+          "node_type": "task",
+          "line": 109,
+          "variable": "candidate_files_report"
+        },
         {
           "rule_id": "FC005",
           "severity": "error",
@@ -113,6 +198,17 @@
           "node_type": "if",
           "line": 264,
           "variable": null
+        },
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[10].task",
+          "message": "its instruction says \"your changes\", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "pass the earlier result explicitly, e.g. {{candidate_file_list}} or {{candidate_files_report}} or {{fix_adjustment}}",
+          "node_name": "create_and_submit_patch",
+          "node_type": "task",
+          "line": 311,
+          "variable": null
         }
       ]
     },
@@ -121,10 +217,24 @@
       "benchmark": "ELAIP-Bench",
       "file": "experiments/elaipbench/passed_workflow_1.yaml",
       "lean4agent_label": "passed",
-      "verdict": "pass",
-      "verdict_spec_rules": "pass",
-      "counts": {},
-      "findings": []
+      "verdict": "warn",
+      "verdict_spec_rules": "warn",
+      "counts": {
+        "FC004": 1
+      },
+      "findings": [
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[3].task",
+          "message": "its instruction names 'question_analysis' in plain text, referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "pass the earlier result explicitly, e.g. {{question_analysis}}",
+          "node_name": "search_keywords",
+          "node_type": "task",
+          "line": 88,
+          "variable": "question_analysis"
+        }
+      ]
     },
     {
       "id": "elaip/passed_workflow_2",
@@ -168,9 +278,21 @@
       "verdict": "warn",
       "verdict_spec_rules": "warn",
       "counts": {
+        "FC004": 1,
         "FC002": 1
       },
       "findings": [
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[3].task",
+          "message": "its instruction names 'question_analysis' in plain text, referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "pass the earlier result explicitly, e.g. {{question_analysis}}",
+          "node_name": "keywords",
+          "node_type": "task",
+          "line": 80,
+          "variable": "question_analysis"
+        },
         {
           "rule_id": "FC002",
           "severity": "warning",
@@ -192,9 +314,21 @@
       "verdict": "fail",
       "verdict_spec_rules": "fail",
       "counts": {
+        "FC004": 1,
         "FC001": 1
       },
       "findings": [
+        {
+          "rule_id": "FC004",
+          "severity": "warning",
+          "node_id": "workflow[1].task",
+          "message": "its instruction names 'paper_outline' in plain text, referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it",
+          "hint": "pass the earlier result explicitly, e.g. {{paper_outline}}",
+          "node_name": "section_headings",
+          "node_type": "task",
+          "line": 40,
+          "variable": "paper_outline"
+        },
         {
           "rule_id": "FC001",
           "severity": "error",
@@ -248,10 +382,10 @@
       "rules": "all (FC001-FC005)",
       "flag": "any",
       "counts": {
-        "TP": 5,
-        "FN": 1,
-        "FP": 2,
-        "TN": 4
+        "TP": 6,
+        "FN": 0,
+        "FP": 4,
+        "TN": 2
       }
     },
     {
@@ -268,10 +402,10 @@
       "rules": "spec (FC001-FC004)",
       "flag": "any",
       "counts": {
-        "TP": 3,
-        "FN": 3,
-        "FP": 2,
-        "TN": 4
+        "TP": 6,
+        "FN": 0,
+        "FP": 4,
+        "TN": 2
       }
     }
   ],
@@ -280,16 +414,43 @@
       "swe/failed_workflow_1": {
         "source": "FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow_1.lean:41-46",
         "lean_verdict": "infoSound = false (failed_workflow_1.lean:311)",
+        "extra_findings": [
+          {
+            "rule": "FC004",
+            "node": "implement_fix",
+            "note": "Right conclusion for a weak reason: implement_fix really is an isolated task that receives none of the exploration or reproduction results, but the phrase FC004 matched (\"Make sure your fix is general\") is about the fix it is writing itself."
+          }
+        ],
         "items": [
           {
             "text": "ALL nodes are `step` type (fresh context each time, no conversation history)",
-            "classification": "flowcheck-gap",
-            "reasoning": "The comment uses the old engine's naming; the YAML uses `task`, which is the stateless kind today (semantics \u00a71.1). Isolated nodes that depend on earlier work are FC004's job, which is not implemented yet."
+            "classification": "caught",
+            "expect": [
+              {
+                "rule": "FC004",
+                "node": "verify_fix"
+              },
+              {
+                "rule": "FC004",
+                "node": "submit_patch"
+              }
+            ],
+            "reasoning": "The comment uses the old engine's naming; the YAML uses `task`, which is the stateless kind today (semantics \u00a71.1). FC004 flags the two tasks whose instructions refer to earlier work they are never given: verify_fix (\"Verify your fix works\") and submit_patch (\"Your fix has been verified\")."
           },
           {
             "text": "NO `save_as` variables \u2014 nothing is passed between steps",
-            "classification": "flowcheck-gap",
-            "reasoning": "No step reads a variable, so there is nothing undefined for FC001-FC003 to report. The problem is that steps refer to earlier work without receiving it (FC004, not yet implemented)."
+            "classification": "caught",
+            "expect": [
+              {
+                "rule": "FC004",
+                "node": "verify_fix"
+              },
+              {
+                "rule": "FC004",
+                "node": "submit_patch"
+              }
+            ],
+            "reasoning": "No step reads a variable, so there is nothing undefined for FC001-FC003. The visible symptom is steps that refer to earlier work without receiving it, which FC004 reports for verify_fix and submit_patch."
           },
           {
             "text": "NO retry loop \u2014 if fix fails, no way to go back",
@@ -299,12 +460,18 @@
           {
             "text": "Each step must re-explore the codebase from scratch",
             "classification": "flowcheck-gap",
-            "reasoning": "Consequence of items 1-2; FC004 territory (not yet implemented)."
+            "reasoning": "FlowCheck has no way to know a step needs the exploration results unless its text refers to them. FC004 does fire on implement_fix, but only because of \"your fix\", which there means the fix the step is about to write, so it doesn't really detect the missing exploration context."
           },
           {
             "text": "verify_fix has NO info about what implement_fix actually changed",
-            "classification": "flowcheck-gap",
-            "reasoning": "verify_fix is a task with no upstream input; whether its instruction refers to the fix is what FC004 checks (not yet implemented)."
+            "classification": "caught",
+            "expect": [
+              {
+                "rule": "FC004",
+                "node": "verify_fix"
+              }
+            ],
+            "reasoning": "verify_fix is a task with no upstream input whose instruction says \"Verify your fix works correctly\"; FC004 flags exactly this."
           }
         ]
       },
@@ -321,8 +488,14 @@
         "items": [
           {
             "text": "The terminal `create_and_submit_patch` step reads NOTHING upstream",
-            "classification": "flowcheck-gap",
-            "reasoning": "A task with no upstream reads is not an undefined read; FC004 (not yet implemented) is the rule that targets it."
+            "classification": "caught",
+            "expect": [
+              {
+                "rule": "FC004",
+                "node": "create_and_submit_patch"
+              }
+            ],
+            "reasoning": "FC004 flags it: the task refers to \"your changes\" and \"the source files you modified\" but receives no earlier output. (It can partly recover them with `git diff` on disk, the tool side channel, which is why FC004 is a warning.)"
           },
           {
             "text": "The `for_each` probe_edge_case body has NO save_as \u2014 per-edge-case findings evaporate",
@@ -349,6 +522,11 @@
             "rule": "FC005",
             "node": "if post_fix_verification contains 'REPRO_AFTER_FIX: fail'",
             "note": "Not in Lean4Agent's list: `contains` is unsupported, so adjust_fix_once never runs."
+          },
+          {
+            "rule": "FC004",
+            "node": "orient_and_scan",
+            "note": "False positive: this is the first step, and \"your fix\" appears in its own to-do list (\"Verify your fix works by re-running your reproduction\"), not as a reference to earlier work."
           }
         ],
         "items": [
@@ -369,8 +547,19 @@
           },
           {
             "text": "All LLM nodes are `step` (fresh context each time) \u2014 no implicit retry via conversation history",
-            "classification": "flowcheck-gap",
-            "reasoning": "Old-engine naming; the YAML uses `task`. Isolation is FC004's job (not yet implemented)."
+            "classification": "caught",
+            "expect": [
+              {
+                "rule": "FC004",
+                "node": "candidate_file_list",
+                "var": "candidate_files_report"
+              },
+              {
+                "rule": "FC004",
+                "node": "create_and_submit_patch"
+              }
+            ],
+            "reasoning": "Old-engine naming; the YAML uses `task`. FC004 flags the isolated tasks that depend on earlier work: candidate_file_list says \"Source: candidate_files_report\" without templating it, and create_and_submit_patch refers to \"your changes\". Most other tasks here are given their inputs through {{...}}, so FC004 correctly stays quiet on them."
           }
         ]
       },
@@ -382,6 +571,11 @@
             "rule": "FC002",
             "node": "finalize_multi_answer",
             "note": "option_judgment is only written inside the recheck `while`, which FlowCheck must assume may run zero times. Here it always runs (recheck_count starts at 0 < 3), so this is a path-sensitivity false positive that phase two should discharge."
+          },
+          {
+            "rule": "FC004",
+            "node": "keywords",
+            "note": "Not in Lean4Agent's list: the `keywords` task (a port of the old `discover` step) says \"Source: question_analysis\" but never templates it, so it is asked to extract keywords from an analysis it cannot see."
           }
         ],
         "items": [
@@ -405,6 +599,13 @@
       "elaip/failed_workflow_2": {
         "source": "FormalAgentLib/StaticSemanticWorkflowExamples/ELAIP-Bench/failed_workflow_2.lean:1-12, 38-41",
         "lean_verdict": "infoSound = false (failed_workflow_2.lean:327)",
+        "extra_findings": [
+          {
+            "rule": "FC004",
+            "node": "section_headings",
+            "note": "Not in Lean4Agent's list: section_headings says \"Source: paper_outline\" and \"above\" but is not given the outline, so it can only invent the headings."
+          }
+        ],
         "items": [
           {
             "text": "search_keyword_in_paper is BROKEN: save_as = None and it reads a `{{keyword}}` loop variable never bound by a producing node",
@@ -441,9 +642,9 @@
       }
     },
     "totals": {
-      "flowcheck-gap": 8,
+      "caught": 6,
       "needs-annotations": 8,
-      "caught": 1
+      "flowcheck-gap": 3
     },
     "passed_findings": [
       {
@@ -461,6 +662,21 @@
         "var": "question_keywords.keywords",
         "verdict": "true-positive",
         "reasoning": "A real bug that Lean4Agent passes. AgentSPEX looks up for_each `in` as one flat key (control.py:167-169), so `in: question_keywords.keywords` iterates once over the literal string \"question_keywords.keywords\", and search_paper_for_keyword searches for that string instead of the extracted keywords. Lean4Agent's IR builder records only the branch_path \"for_each:keyword\" and never models `in`, so it can't see this."
+      },
+      {
+        "workflow": "swe/passed_workflow_2",
+        "rule": "FC004",
+        "node": "present_problem",
+        "verdict": "false-positive",
+        "reasoning": "present_problem is the first step; \"your fix\" appears in the to-do list it gives the model (\"Verify your fix works by running your script again\"), which describes work the step itself will do. FC004 can't tell a forward reference from a backward one."
+      },
+      {
+        "workflow": "elaip/passed_workflow_1",
+        "rule": "FC004",
+        "node": "search_keywords",
+        "var": "question_analysis",
+        "verdict": "true-positive",
+        "reasoning": "A real problem Lean4Agent passes. search_keywords is a task (no history) whose instruction is \"Source: question_analysis ... Extract the keywords field from the question analysis JSON\", but question_analysis is never passed with {{...}}, so the model gets no analysis to extract from. This is the same pattern as the `keywords` task in elaip/failed_workflow_1."
       }
     ]
   },

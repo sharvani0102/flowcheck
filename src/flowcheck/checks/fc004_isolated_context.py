@@ -80,13 +80,15 @@ def _upstream_producers(an: Analysis, node: Node) -> Set[str]:
 
 
 def _phrase_hit(instruction: str) -> Optional[str]:
+    """The earliest qualifying phrase in the instruction, as written."""
     first_tpl = TEMPLATE_RE.search(instruction)
+    hits = []
     for phrase, rx in _PHRASE_RES:
         for m in rx.finditer(instruction):
             if phrase in POSITIONAL and first_tpl and first_tpl.start() < m.start():
                 continue
-            return m.group(0)
-    return None
+            hits.append((m.start(), m.group(0)))
+    return min(hits)[1] if hits else None
 
 
 def _bare_mention(instruction: str, upstream: Set[str], read_names: Set[str]) -> Optional[str]:

@@ -327,7 +327,7 @@ def main() -> int:
         data = {
             "flowcheck_version": __version__,
             "reference_commit": reference_commit(),
-            "fc004_implemented": False,
+            "fc004_implemented": True,
             "benchmarks": records,
             "agreement": [
                 {"rules": rules, "flag": flag,

@@ -36,29 +36,35 @@ verification. It is evaluated against Lean4Agent's published verdicts.
 Phase 1 (in progress): AgentSPEX parser, rules FC001–FC005, and evaluation on Lean4Agent's
 12 benchmark workflows. See [docs/phase1-results.md](docs/phase1-results.md).
 
-## Results so far (FC001–FC003, FC005; FC004 not yet implemented)
+## Results so far (all rules, FC001–FC005)
 On Lean4Agent's 12 labelled workflows (6 rejected by Lean4Agent, 6 accepted), FlowCheck
 checks all of them in under half a second.
 
 | Rules counted | Rejected workflows flagged | Accepted workflows flagged |
 |---|---|---|
-| Errors, FC001–FC005 | 3 of 6 | 1 of 6 |
-| Errors or warnings, FC001–FC005 | 5 of 6 | 2 of 6 |
-| Errors, FC001–FC004 only | 1 of 6 | 1 of 6 |
+| Errors only (certain), FC001–FC005 | 3 of 6 | 1 of 6 |
+| Errors or warnings, FC001–FC005 | 6 of 6 | 4 of 6 |
+| Errors only, FC001–FC004 | 1 of 6 | 1 of 6 |
 
+- **Two of the four flagged "accepted" workflows contain real bugs Lean4Agent misses.**
+  - ELAIP-Bench `passed_workflow_3` loops over `in: question_keywords.keywords`. AgentSPEX looks
+    that up as one flat key, so the loop runs once over the literal string (FC001).
+  - ELAIP-Bench `passed_workflow_1` has a task that says "Source: question_analysis" but never
+    receives it (FC004).
+- **The other two are false positives (both warnings).**
+  - SWE-Bench `passed_workflow_3`: a value written inside a `while` loop that always runs at
+    least once (FC002; FlowCheck is path-insensitive).
+  - SWE-Bench `passed_workflow_2`: "your fix" in a first step's to-do list (FC004 can't tell a
+    forward reference from a backward one).
 - **Bugs Lean4Agent doesn't report.** Two rejected SWE-Bench workflows contain constructs
   AgentSPEX silently mis-executes: `contains` conditions that are always false, and a
   `switch: on:` that YAML reads as a boolean, so the switch always takes `default` (FC005).
-- **A bug in a workflow Lean4Agent accepts.** ELAIP-Bench `passed_workflow_3` loops over
-  `in: question_keywords.keywords`. AgentSPEX looks that up as one flat key, so the loop runs
-  once over the literal string (FC001).
-- **One false positive.** SWE-Bench `passed_workflow_3` gets an FC002 warning for a value
-  written inside a `while` loop that always runs at least once. FlowCheck is
-  path-insensitive; a phase-two path check would remove it.
 - **Lean4Agent's documented problems.** Of the 17 problems Lean4Agent lists for its rejected
-  workflows, FlowCheck catches 1 so far. 8 need per-step annotations (phase two), and 8 are
-  gaps, mostly the isolated-context cases FC004 targets.
+  workflows, FlowCheck catches 6. 8 need per-step annotations (phase two), and 3 are
+  FlowCheck gaps (for example, loop steps whose output is never saved).
 - **Graph cross-check.** FlowCheck's parsed graph was compared with Lean4Agent's IR for all
   12 workflows. All 103 differences are reviewed, and none is a FlowCheck error. They come
   from Lean4Agent's IR being linearised or hand-abstracted, and from two IR files that are
   stale relative to their YAML.
+
+Details: [docs/phase1-results.md](docs/phase1-results.md).

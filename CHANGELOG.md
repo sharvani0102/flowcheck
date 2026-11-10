@@ -25,5 +25,8 @@ All notable changes to FlowCheck are listed here.
   before FC004 was run on any benchmark workflow.
 
 ### Changed
+- Step 4a re-run with FC004; annotations, results doc and README numbers updated.
+- FC004 quotes the earliest matching phrase in the instruction (presentation
+  only; what fires is unchanged).
 - README rule table: FC003 covers list-form `parallel` and modules only (loops
   and branches are not scopes in AgentSPEX); FC005 added.

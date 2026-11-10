@@ -4,8 +4,6 @@
 
 FlowCheck 0.1.0, Lean4Agent reference commit `e6a78cb`. Rules: FC001-FC004 are the original spec, FC005 (runtime traps) is an addition and is reported separately where it matters. **E** = error (certain from the YAML), **W** = warning (heuristic or path-insensitive).
 
-**Status:** FC004 (isolated context) is not implemented yet in this run, so problems that only FC004 could catch are listed as gaps for now.
-
 ## 4a. The 12 labelled benchmark workflows
 
 Verdict: `fail` = at least one error, `warn` = warnings only, `pass` = no findings. "Spec rules" ignores FC005.
@@ -13,16 +11,16 @@ Verdict: `fail` = at least one error, `warn` = warnings only, `pass` = no findin
 | Workflow | Lean4Agent label | Verdict (all rules) | Verdict (spec rules FC001-FC004) | Findings |
 |---|---|---|---|---|
 | `swe/passed_workflow_1` | passed | pass | pass | none |
-| `swe/passed_workflow_2` | passed | pass | pass | none |
+| `swe/passed_workflow_2` | passed | warn | warn | FC004(W) @ present_problem |
 | `swe/passed_workflow_3` | passed | warn | warn | FC002(W) `fix_description` @ create_patch |
-| `swe/failed_workflow_1` | failed | pass | pass | none |
-| `swe/failed_workflow_2` | failed | fail | pass | FC005(E) @ if repro_report contains could_not_reproduce |
-| `swe/failed_workflow_3` | failed | fail | pass | FC005(E) @ switch (no variable)<br>FC005(E) @ if post_fix_verification contains 'REPRO_AFTER_FIX: fail' |
-| `elaip/passed_workflow_1` | passed | pass | pass | none |
+| `swe/failed_workflow_1` | failed | warn | warn | FC004(W) @ implement_fix<br>FC004(W) @ verify_fix<br>FC004(W) @ submit_patch |
+| `swe/failed_workflow_2` | failed | fail | warn | FC005(E) @ if repro_report contains could_not_reproduce<br>FC004(W) @ create_and_submit_patch |
+| `swe/failed_workflow_3` | failed | fail | warn | FC004(W) @ orient_and_scan<br>FC004(W) `candidate_files_report` @ candidate_file_list<br>FC005(E) @ switch (no variable)<br>FC005(E) @ if post_fix_verification contains 'REPRO_AFTER_FIX: fail'<br>FC004(W) @ create_and_submit_patch |
+| `elaip/passed_workflow_1` | passed | warn | warn | FC004(W) `question_analysis` @ search_keywords |
 | `elaip/passed_workflow_2` | passed | pass | pass | none |
 | `elaip/passed_workflow_3` | passed | fail | fail | FC001(E) `question_keywords.keywords` @ for_each keyword in question_keywords.keywords |
-| `elaip/failed_workflow_1` | failed | warn | warn | FC002(W) `option_judgment` @ finalize_multi_answer |
-| `elaip/failed_workflow_2` | failed | fail | fail | FC001(E) `question_analysis.keywords` @ for_each keyword in question_analysis.keywords |
+| `elaip/failed_workflow_1` | failed | warn | warn | FC004(W) `question_analysis` @ keywords<br>FC002(W) `option_judgment` @ finalize_multi_answer |
+| `elaip/failed_workflow_2` | failed | fail | fail | FC004(W) `paper_outline` @ section_headings<br>FC001(E) `question_analysis.keywords` @ for_each keyword in question_analysis.keywords |
 | `elaip/failed_workflow_3` | failed | warn | warn | FC002(W) `combined_judgment` @ finalize_multi_answer |
 
 ### Agreement with Lean4Agent's labels
@@ -32,13 +30,13 @@ Positive class = Lean4Agent rejects the workflow (`failed`). TP = failed and fla
 | Rules | Flagged means | TP | FN | FP | TN |
 |---|---|---|---|---|---|
 | all (FC001-FC005) | errors | 3 | 3 | 1 | 5 |
-| all (FC001-FC005) | any | 5 | 1 | 2 | 4 |
+| all (FC001-FC005) | any | 6 | 0 | 4 | 2 |
 | spec (FC001-FC004) | errors | 1 | 5 | 1 | 5 |
-| spec (FC001-FC004) | any | 3 | 3 | 2 | 4 |
+| spec (FC001-FC004) | any | 6 | 0 | 4 | 2 |
 
 ### Problems Lean4Agent documents for its failed workflows
 
-Totals: **caught 1**, needs per-step annotations (phase two) 8, FlowCheck gap 8.
+Totals: **caught 6**, needs per-step annotations (phase two) 8, FlowCheck gap 3.
 
 #### `swe/failed_workflow_1`
 
@@ -46,11 +44,15 @@ Source: `FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow
 
 | Documented problem | Classification | Reasoning |
 |---|---|---|
-| ALL nodes are `step` type (fresh context each time, no conversation history) | flowcheck-gap | The comment uses the old engine's naming; the YAML uses `task`, which is the stateless kind today (semantics §1.1). Isolated nodes that depend on earlier work are FC004's job, which is not implemented yet. |
-| NO `save_as` variables — nothing is passed between steps | flowcheck-gap | No step reads a variable, so there is nothing undefined for FC001-FC003 to report. The problem is that steps refer to earlier work without receiving it (FC004, not yet implemented). |
+| ALL nodes are `step` type (fresh context each time, no conversation history) | caught | The comment uses the old engine's naming; the YAML uses `task`, which is the stateless kind today (semantics §1.1). FC004 flags the two tasks whose instructions refer to earlier work they are never given: verify_fix ("Verify your fix works") and submit_patch ("Your fix has been verified"). |
+| NO `save_as` variables — nothing is passed between steps | caught | No step reads a variable, so there is nothing undefined for FC001-FC003. The visible symptom is steps that refer to earlier work without receiving it, which FC004 reports for verify_fix and submit_patch. |
 | NO retry loop — if fix fails, no way to go back | needs-annotations | A missing recovery path is a property of the goal (fix verified before submit), not of information flow. Lean4Agent checks it with sub-goal annotations; FlowCheck has no notion of goals. |
-| Each step must re-explore the codebase from scratch | flowcheck-gap | Consequence of items 1-2; FC004 territory (not yet implemented). |
-| verify_fix has NO info about what implement_fix actually changed | flowcheck-gap | verify_fix is a task with no upstream input; whether its instruction refers to the fix is what FC004 checks (not yet implemented). |
+| Each step must re-explore the codebase from scratch | flowcheck-gap | FlowCheck has no way to know a step needs the exploration results unless its text refers to them. FC004 does fire on implement_fix, but only because of "your fix", which there means the fix the step is about to write, so it doesn't really detect the missing exploration context. |
+| verify_fix has NO info about what implement_fix actually changed | caught | verify_fix is a task with no upstream input whose instruction says "Verify your fix works correctly"; FC004 flags exactly this. |
+
+Problems FlowCheck reports that Lean4Agent doesn't list:
+
+- **FC004** at `implement_fix`: Right conclusion for a weak reason: implement_fix really is an isolated task that receives none of the exploration or reproduction results, but the phrase FC004 matched ("Make sure your fix is general") is about the fix it is writing itself.
 
 #### `swe/failed_workflow_2`
 
@@ -58,7 +60,7 @@ Source: `FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow
 
 | Documented problem | Classification | Reasoning |
 |---|---|---|
-| The terminal `create_and_submit_patch` step reads NOTHING upstream | flowcheck-gap | A task with no upstream reads is not an undefined read; FC004 (not yet implemented) is the rule that targets it. |
+| The terminal `create_and_submit_patch` step reads NOTHING upstream | caught | FC004 flags it: the task refers to "your changes" and "the source files you modified" but receives no earlier output. (It can partly recover them with `git diff` on disk, the tool side channel, which is why FC004 is a warning.) |
 | The `for_each` probe_edge_case body has NO save_as — per-edge-case findings evaporate | flowcheck-gap | Visible from the YAML (an LLM step in a loop body whose output is never saved), but FlowCheck only checks reads, not outputs that are produced and dropped. A "discarded output" rule would cover it. |
 | `reproduction_retry` overwrites repro_report in the then-branch but the else-branch writes nothing | needs-annotations | repro_report is defined on both paths (written before the `if`), so there is no undefined read; Lean4Agent itself notes both branches leave it non-empty. Whether the two states mean the same thing needs postconditions. Separately, FlowCheck finds that this `if` can never take the then-branch at all (FC005, see extra_findings). |
 
@@ -75,12 +77,13 @@ Source: `FormalAgentLib/StaticSemanticWorkflowExamples/SWE-Bench/failed_workflow
 | `for_each` body step `inspect_candidate` has NO save_as — scouting results are lost | flowcheck-gap | Same as swe/failed_workflow_2 item 2: discarded outputs are not checked. |
 | `adjust_fix_once` runs exactly once and flows straight into edge_case_plan WITHOUT a second verify step | needs-annotations | A missing verification step is a goal-coverage property, not information flow. |
 | post_fix_verification is STALE after adjust_fix_once | needs-annotations | The variable is defined; that it no longer describes the code after the adjustment is a semantic fact about what the steps do, which needs postconditions. |
-| All LLM nodes are `step` (fresh context each time) — no implicit retry via conversation history | flowcheck-gap | Old-engine naming; the YAML uses `task`. Isolation is FC004's job (not yet implemented). |
+| All LLM nodes are `step` (fresh context each time) — no implicit retry via conversation history | caught | Old-engine naming; the YAML uses `task`. FC004 flags the isolated tasks that depend on earlier work: candidate_file_list says "Source: candidate_files_report" without templating it, and create_and_submit_patch refers to "your changes". Most other tasks here are given their inputs through {{...}}, so FC004 correctly stays quiet on them. |
 
 Problems FlowCheck reports that Lean4Agent doesn't list:
 
 - **FC005** at `switch (no variable)`: Not in Lean4Agent's list: `switch: on:` is parsed by YAML 1.1 as the boolean key True, so the switch has no `variable` and always runs the default branch; the four strategy-specific fix steps can never run.
 - **FC005** at `if post_fix_verification contains 'REPRO_AFTER_FIX: fail'`: Not in Lean4Agent's list: `contains` is unsupported, so adjust_fix_once never runs.
+- **FC004** at `orient_and_scan`: False positive: this is the first step, and "your fix" appears in its own to-do list ("Verify your fix works by re-running your reproduction"), not as a reference to earlier work.
 
 #### `elaip/failed_workflow_1`
 
@@ -95,6 +98,7 @@ Source: `FormalAgentLib/StaticSemanticWorkflowExamples/ELAIP-Bench/failed_workfl
 Problems FlowCheck reports that Lean4Agent doesn't list:
 
 - **FC002** at `finalize_multi_answer`: option_judgment is only written inside the recheck `while`, which FlowCheck must assume may run zero times. Here it always runs (recheck_count starts at 0 < 3), so this is a path-sensitivity false positive that phase two should discharge.
+- **FC004** at `keywords`: Not in Lean4Agent's list: the `keywords` task (a port of the old `discover` step) says "Source: question_analysis" but never templates it, so it is asked to extract keywords from an analysis it cannot see.
 
 #### `elaip/failed_workflow_2`
 
@@ -103,6 +107,10 @@ Source: `FormalAgentLib/StaticSemanticWorkflowExamples/ELAIP-Bench/failed_workfl
 | Documented problem | Classification | Reasoning |
 |---|---|---|
 | search_keyword_in_paper is BROKEN: save_as = None and it reads a `{{keyword}}` loop variable never bound by a producing node | caught | FlowCheck finds the step broken for a different, concrete reason. `keyword` *is* bound (it is the for_each variable), but the loop is `in: question_analysis.keywords`, which AgentSPEX looks up as one flat key (control.py:167-169). So the loop runs once with keyword = "question_analysis.keywords". The missing save_as (results dropped) is not checked by FlowCheck (see swe/failed_workflow_2 item 2). |
+
+Problems FlowCheck reports that Lean4Agent doesn't list:
+
+- **FC004** at `section_headings`: Not in Lean4Agent's list: section_headings says "Source: paper_outline" and "above" but is not given the outline, so it can only invent the headings.
 
 #### `elaip/failed_workflow_3`
 
@@ -124,25 +132,54 @@ Problems FlowCheck reports that Lean4Agent doesn't list:
 |---|---|---|---|
 | `swe/passed_workflow_3` | FC002 `fix_description` @ create_patch | false-positive | fix_description is only written inside `while fix_attempt < max_fix_attempts`. The loop always runs at least once, because fix_attempt is set to 0 just before it and max_fix_attempts is 3; the Lean4Agent IR records loop_executes_at_least_once: true. FlowCheck is path-insensitive and must assume zero iterations. Phase two's feasibility oracle would discharge this. |
 | `elaip/passed_workflow_3` | FC001 `question_keywords.keywords` @ for_each keyword in question_keywords.keywords | true-positive | A real bug that Lean4Agent passes. AgentSPEX looks up for_each `in` as one flat key (control.py:167-169), so `in: question_keywords.keywords` iterates once over the literal string "question_keywords.keywords", and search_paper_for_keyword searches for that string instead of the extracted keywords. Lean4Agent's IR builder records only the branch_path "for_each:keyword" and never models `in`, so it can't see this. |
+| `swe/passed_workflow_2` | FC004 @ present_problem | false-positive | present_problem is the first step; "your fix" appears in the to-do list it gives the model ("Verify your fix works by running your script again"), which describes work the step itself will do. FC004 can't tell a forward reference from a backward one. |
+| `elaip/passed_workflow_1` | FC004 `question_analysis` @ search_keywords | true-positive | A real problem Lean4Agent passes. search_keywords is a task (no history) whose instruction is "Source: question_analysis ... Extract the keywords field from the question analysis JSON", but question_analysis is never passed with {{...}}, so the model gets no analysis to extract from. This is the same pattern as the `keywords` task in elaip/failed_workflow_1. |
 
 ### All findings in full
+
+**`experiments/SWE_bench_verified/passed_workflow_2.yaml`**
+
+- line 37: warning **FC004** [present_problem] its instruction says "your fix", referring to earlier work, but this is a step with no earlier step in its history (tasks don't add to it) and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: save the earlier result with save_as and pass it with {{...}}
 
 **`experiments/SWE_bench_verified/passed_workflow_3.yaml`**
 
 - line 394: warning **FC002** [create_patch] {{fix_description}} may be undefined here: it is not written when `while fix_attempt < max_fix_attempts` runs zero times (line 185)  
   hint: make sure 'fix_description' is written on every path, e.g. initialise it with set_variable before the branch or loop
 
+**`experiments/SWE_bench_verified/failed_workflow_1.yaml`**
+
+- line 108: warning **FC004** [implement_fix] its instruction says "your fix", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: save the earlier result with save_as and pass it with {{...}}
+- line 134: warning **FC004** [verify_fix] its instruction says "your fix", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: save the earlier result with save_as and pass it with {{...}}
+- line 155: warning **FC004** [submit_patch] its instruction says "Your fix", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: save the earlier result with save_as and pass it with {{...}}
+
 **`experiments/SWE_bench_verified/failed_workflow_2.yaml`**
 
 - line 137: error **FC005** [if repro_report contains could_not_reproduce] the condition part 'repro_report contains could_not_reproduce' is neither a comparison (== != < > <= >=) nor a variable name, so AgentSPEX evaluates it as false every time (conditions.py:142-206); the 'then' branch never runs  
   hint: rewrite it as a supported comparison, or compute a flag with a step and test that
+- line 275: warning **FC004** [create_and_submit_patch] its instruction says "your changes", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: pass the earlier result explicitly, e.g. {{diagnosis}} or {{edge_case_list}} or {{fix_result}}
 
 **`experiments/SWE_bench_verified/failed_workflow_3.yaml`**
 
+- line 38: warning **FC004** [orient_and_scan] its instruction says "your fix", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: save the earlier result with save_as and pass it with {{...}}
+- line 109: warning **FC004** [candidate_file_list] its instruction names 'candidate_files_report' in plain text, referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: pass the earlier result explicitly, e.g. {{candidate_files_report}}
 - line 184: error **FC005** [switch (no variable)] this switch has no string 'variable' key, so AgentSPEX looks up None, no case ever matches, and it always runs 'default' (control.py:405-417). YAML 1.1 read one of its keys as the boolean True (this happens to 'on:', 'yes:', 'no:', 'off:')  
   hint: use 'variable: <name>' (quote YAML keys like 'on')
 - line 264: error **FC005** [if post_fix_verification contains 'REPRO_AFTER_FIX: fail'] the condition part 'post_fix_verification contains 'REPRO_AFTER_FIX: fail'' is neither a comparison (== != < > <= >=) nor a variable name, so AgentSPEX evaluates it as false every time (conditions.py:142-206); the 'then' branch never runs  
   hint: rewrite it as a supported comparison, or compute a flag with a step and test that
+- line 311: warning **FC004** [create_and_submit_patch] its instruction says "your changes", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: pass the earlier result explicitly, e.g. {{candidate_file_list}} or {{candidate_files_report}} or {{fix_adjustment}}
+
+**`experiments/elaipbench/passed_workflow_1.yaml`**
+
+- line 88: warning **FC004** [search_keywords] its instruction names 'question_analysis' in plain text, referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: pass the earlier result explicitly, e.g. {{question_analysis}}
 
 **`experiments/elaipbench/passed_workflow_3.yaml`**
 
@@ -151,11 +188,15 @@ Problems FlowCheck reports that Lean4Agent doesn't list:
 
 **`experiments/elaipbench/failed_workflow_1.yaml`**
 
+- line 80: warning **FC004** [keywords] its instruction names 'question_analysis' in plain text, referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: pass the earlier result explicitly, e.g. {{question_analysis}}
 - line 219: warning **FC002** [finalize_multi_answer] {{option_judgment}} may be undefined here: it is not written when `while recheck_count < 3` runs zero times (line 183)  
   hint: make sure 'option_judgment' is written on every path, e.g. initialise it with set_variable before the branch or loop
 
 **`experiments/elaipbench/failed_workflow_2.yaml`**
 
+- line 40: warning **FC004** [section_headings] its instruction names 'paper_outline' in plain text, referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it  
+  hint: pass the earlier result explicitly, e.g. {{paper_outline}}
 - line 95: error **FC001** [for_each keyword in question_analysis.keywords] for_each 'in: question_analysis.keywords' is looked up as one flat key, not a dotted path (control.py:167-169), so the loop runs once over the literal string 'question_analysis.keywords'  
   hint: first save the list to its own variable (e.g. a task with save_as), then loop over that
 

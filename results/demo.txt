@@ -2,11 +2,17 @@ FlowCheck demo (run from reference/Lean4Agent, commit e6a78cb; flowcheck 0.1.0)
 One workflow Lean4Agent rejects and one it accepts.
 
 $ flowcheck experiments/SWE_bench_verified/failed_workflow_3.yaml
+experiments/SWE_bench_verified/failed_workflow_3.yaml:38: warning FC004 [orient_and_scan (task)] its instruction says "your fix", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it
+    hint: save the earlier result with save_as and pass it with {{...}}
+experiments/SWE_bench_verified/failed_workflow_3.yaml:109: warning FC004 [candidate_file_list (task)] var 'candidate_files_report': its instruction names 'candidate_files_report' in plain text, referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it
+    hint: pass the earlier result explicitly, e.g. {{candidate_files_report}}
 experiments/SWE_bench_verified/failed_workflow_3.yaml:184: error FC005 [switch (no variable) (switch)] this switch has no string 'variable' key, so AgentSPEX looks up None, no case ever matches, and it always runs 'default' (control.py:405-417). YAML 1.1 read one of its keys as the boolean True (this happens to 'on:', 'yes:', 'no:', 'off:')
     hint: use 'variable: <name>' (quote YAML keys like 'on')
 experiments/SWE_bench_verified/failed_workflow_3.yaml:264: error FC005 [if post_fix_verification contains 'REPRO_AFTER_FIX: fail' (if)] the condition part 'post_fix_verification contains 'REPRO_AFTER_FIX: fail'' is neither a comparison (== != < > <= >=) nor a variable name, so AgentSPEX evaluates it as false every time (conditions.py:142-206); the 'then' branch never runs
     hint: rewrite it as a supported comparison, or compute a flag with a step and test that
-2 error(s), 0 warning(s) in 1 file(s)
+experiments/SWE_bench_verified/failed_workflow_3.yaml:311: warning FC004 [create_and_submit_patch (task)] its instruction says "your changes", referring to earlier work, but this is a task, which has no conversation history and it receives no earlier step's output through {{...}}. Unless it reads that work back from files with a tool, it cannot see it
+    hint: pass the earlier result explicitly, e.g. {{candidate_file_list}} or {{candidate_files_report}} or {{fix_adjustment}}
+2 error(s), 3 warning(s) in 1 file(s)
 [exit code 1]
 
 $ flowcheck experiments/SWE_bench_verified/passed_workflow_1.yaml
