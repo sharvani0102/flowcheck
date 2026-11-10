@@ -1,0 +1,30 @@
+# Clean: a task that is given the earlier work, a step that sees an earlier
+# step in history, "above" that refers to a placeholder earlier in the same
+# prompt, and a task with no reference to earlier work at all.
+name: fc004_clean
+goal: None of these should be flagged.
+parameters:
+  paper: "text"
+workflow:
+  - task:
+      name: fix
+      instruction: "Write a fix."
+      save_as: patch
+  - task:
+      name: verify
+      instruction: "Check that your fix works: {{patch}}"
+  - step:
+      name: explore
+      instruction: "Explore the repository."
+  - step:
+      name: continue
+      instruction: "Based on what you found above, list the key files."
+  - task:
+      name: headings
+      instruction: |
+        Paper:
+        {{paper}}
+        List the section headings of the paper above.
+  - task:
+      name: standalone
+      instruction: "Write a haiku about autumn."

@@ -1,0 +1,13 @@
+# expect: FC004 node=verify
+name: fc004_task_phrase
+goal: A task refers to "your fix" but is given nothing.
+parameters:
+  issue: "a bug"
+workflow:
+  - task:
+      name: fix
+      instruction: "Fix {{issue}}."
+      save_as: patch
+  - task:
+      name: verify
+      instruction: "Run the tests and check that your fix works."

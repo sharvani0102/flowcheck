@@ -21,6 +21,8 @@ All notable changes to FlowCheck are listed here.
   workflows, validates the hand-written review in
   `results/annotations/lean4agent_problems.yaml`, and writes
   `results/phase1_eval.json`, `docs/phase1-results.md` and `results/demo.txt`.
+- FC004 isolated-context (warning): fixed phrase list and fixtures, added
+  before FC004 was run on any benchmark workflow.
 
 ### Changed
 - README rule table: FC003 covers list-form `parallel` and modules only (loops

@@ -46,7 +46,7 @@ def test_fixture(path):
 
 
 def test_every_rule_has_clean_and_buggy_fixtures():
-    for rule in ("fc001", "fc002", "fc003", "fc005"):
+    for rule in ("fc001", "fc002", "fc003", "fc004", "fc005"):
         names = [p.name for p in (FIXTURES / rule).glob("*.yaml")]
         assert any(n.startswith("buggy_") for n in names), rule
         if rule != "fc005":

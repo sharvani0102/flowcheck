@@ -1,0 +1,15 @@
+# expect: FC004 node=keywords var=question_analysis
+name: fc004_bare_mention
+goal: A task names an upstream variable in prose instead of templating it.
+parameters:
+  question: "q"
+workflow:
+  - task:
+      name: analyse
+      instruction: "Analyse {{question}}."
+      save_as: question_analysis
+  - task:
+      name: keywords
+      instruction: |
+        Source: question_analysis
+        Extract the keywords as a JSON list.

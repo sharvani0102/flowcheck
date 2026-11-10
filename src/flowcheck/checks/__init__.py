@@ -7,13 +7,15 @@ from typing import Callable, Dict, List, Optional
 from ..dataflow import FeasibilityOracle
 from ..findings import Finding
 from ..ir import Workflow
-from . import fc001_undefined, fc002_maybe_undefined, fc003_scope_leak, fc005_runtime_trap
+from . import (fc001_undefined, fc002_maybe_undefined, fc003_scope_leak,
+               fc004_isolated_context, fc005_runtime_trap)
 from .common import Analysis
 
 CHECKS: Dict[str, Callable[[Analysis], List[Finding]]] = {
     fc001_undefined.RULE: fc001_undefined.check,
     fc002_maybe_undefined.RULE: fc002_maybe_undefined.check,
     fc003_scope_leak.RULE: fc003_scope_leak.check,
+    fc004_isolated_context.RULE: fc004_isolated_context.check,
     fc005_runtime_trap.RULE: fc005_runtime_trap.check,
 }
 

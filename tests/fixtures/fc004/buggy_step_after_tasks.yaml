@@ -1,0 +1,11 @@
+# expect: FC004 node=summarise
+name: fc004_step_after_tasks
+goal: A step whose only predecessors are tasks has no history to look at.
+workflow:
+  - task:
+      name: research
+      instruction: "Research the topic."
+      save_as: notes
+  - step:
+      name: summarise
+      instruction: "Summarise what you found in the previous step."
