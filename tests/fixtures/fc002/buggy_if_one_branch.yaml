@@ -1,0 +1,18 @@
+# expect: FC002 node=report var=fix
+name: fc002_if_one_branch
+goal: Only the then-branch writes the variable.
+workflow:
+  - task:
+      name: check
+      instruction: "Return yes or no."
+      save_as: needs_fix
+  - if:
+      condition: "needs_fix == yes"
+      then:
+        - task:
+            name: make_fix
+            instruction: "Fix it."
+            save_as: fix
+  - task:
+      name: report
+      instruction: "Report on {{fix}}."

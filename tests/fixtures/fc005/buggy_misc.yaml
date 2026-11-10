@@ -1,0 +1,26 @@
+# expect: FC005 node=<entry>
+# expect: FC005 node=no_instruction
+# expect: FC005 node="parallel modules/x.yaml"
+# expect: FC005 node="set_variable:item_{{i}}"
+# expect: FC005 node="switch kind"
+name: fc005_misc
+parameters:
+  plist: []
+  kind: "1"
+workflow:
+  - task:
+      name: no_instruction
+      save_as: nothing
+  - parallel:
+      module: "modules/x.yaml"
+      parameters_list: plist
+  - set_variable:
+      name: "item_{{i}}"
+      value: "1"
+  - switch:
+      variable: kind
+      cases:
+        1:
+          - task:
+              name: one
+              instruction: "One."

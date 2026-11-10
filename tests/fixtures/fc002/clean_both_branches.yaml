@@ -1,0 +1,21 @@
+name: fc002_clean_both_branches
+goal: Written on both branches, so it is definitely defined.
+workflow:
+  - task:
+      name: check
+      instruction: "Return yes or no."
+      save_as: ok
+  - if:
+      condition: "ok == yes"
+      then:
+        - task:
+            name: good
+            instruction: "Say good."
+            save_as: message
+      else:
+        - set_variable:
+            name: message
+            value: "bad"
+  - task:
+      name: tell
+      instruction: "Tell {{message}}."

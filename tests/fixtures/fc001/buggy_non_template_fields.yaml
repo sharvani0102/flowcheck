@@ -1,0 +1,25 @@
+# expect: FC001 node="for_each item in analysis.items" var=analysis.items
+# expect: FC001 node="switch {{mode}}" var={{mode}}
+name: fc001_non_template_fields
+goal: for_each.in and switch.variable are flat lookups, never templated.
+parameters:
+  mode: "fast"
+workflow:
+  - task:
+      name: analyse
+      instruction: "Return JSON with an items list."
+      save_as: analysis
+  - for_each:
+      variable: item
+      in: analysis.items
+      steps:
+        - task:
+            name: handle
+            instruction: "Handle {{item}}."
+  - switch:
+      variable: "{{mode}}"
+      cases:
+        fast:
+          - task:
+              name: quick
+              instruction: "Be quick."

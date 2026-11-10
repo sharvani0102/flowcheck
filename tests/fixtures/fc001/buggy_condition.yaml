@@ -1,0 +1,14 @@
+# expect: FC001 node="if score > 0.5" var=score
+name: fc001_condition
+goal: A condition reads a variable that is only written later.
+workflow:
+  - if:
+      condition: "score > 0.5"
+      then:
+        - task:
+            name: celebrate
+            instruction: "Celebrate."
+  - task:
+      name: grade
+      instruction: "Return a score."
+      save_as: score

@@ -94,9 +94,10 @@ class _Builder:
         return n
 
     def scope(self, kind: str, parent: Optional[int], discards: bool = False,
-              fork: Optional[int] = None, label: str = "") -> int:
+              fork: Optional[int] = None, label: str = "",
+              header: Optional[int] = None, arm: str = "") -> int:
         s = Scope(id=len(self.scopes), kind=kind, parent=parent,
-                  discards_writes=discards, fork=fork, label=label)
+                  discards_writes=discards, fork=fork, label=label, header=header, arm=arm)
         self.scopes[s.id] = s
         return s.id
 
@@ -213,7 +214,8 @@ class _Builder:
         name = _text(body.get("name")) or kind
         instr = body.get("instruction")
         n, out = self._simple(kind, name, pending, scope, path, line,
-                              sees_history=(kind == "step"), instruction=_text(instr))
+                              sees_history=(kind == "step"), instruction=_text(instr),
+                              extra={"yaml_name": body.get("name")})
         n.reads += template_reads(body.get("name"), "name", line)
         n.reads += template_reads(instr, "instruction", line)
         if kind == "task":  # per-task system_prompt is honoured (basic.py:146)
@@ -306,8 +308,9 @@ class _Builder:
             self.trap(h, problem + "; the 'then' branch never runs",
                       "rewrite it as a supported comparison, or compute a flag with "
                       "a step and test that")
-        then_scope = self.scope("branch", scope, label="then")
-        else_scope = self.scope("branch", scope, label="else")
+        then_scope = self.scope("branch", scope, label="then", header=h.id, arm="then")
+        else_scope = self.scope("branch", scope, label="else", header=h.id, arm="else")
+        h.extra["arm_scopes"] = {"then": then_scope, "else": else_scope}
         then_out = self.seq(body.get("then"), [(h.id, EdgeKind.BRANCH_TRUE, "then")],
                             then_scope, f"{path}.then")
         else_out = self.seq(body.get("else") or [],
@@ -338,6 +341,7 @@ class _Builder:
                       "use 'variable: <name>' (quote YAML keys like 'on')")
         cases = body.get("cases") or {}
         branches: "Pending" = []
+        h.extra["arm_scopes"] = {}
         if isinstance(cases, dict):
             for key, steps in cases.items():
                 if not isinstance(key, str):
@@ -346,10 +350,12 @@ class _Builder:
                                  "exact dict lookup (control.py:415), so it can only match a "
                                  "value of that same type",
                               f"quote the key: '\"{key}\":'")
-                s = self.scope("branch", scope, label=f"case {key}")
+                s = self.scope("branch", scope, label=f"case {key}", header=h.id, arm=str(key))
+                h.extra["arm_scopes"][str(key)] = s
                 branches += self.seq(steps, [(h.id, EdgeKind.BRANCH_TRUE, str(key))],
                                      s, f"{path}.cases.{key}")
-        d = self.scope("branch", scope, label="default")
+        d = self.scope("branch", scope, label="default", header=h.id, arm="default")
+        h.extra["arm_scopes"]["default"] = d
         branches += self.seq(body.get("default") or [],
                              [(h.id, EdgeKind.BRANCH_FALSE, "default")], d,
                              f"{path}.default")
@@ -369,7 +375,8 @@ class _Builder:
         if problem:
             self.trap(h, problem + "; the loop body never runs",
                       "rewrite it as a supported comparison")
-        s = self.scope("loop_body", scope, label=h.name)
+        s = self.scope("loop_body", scope, label=h.name, header=h.id, arm="body")
+        h.extra["body_scope"] = s
         body_out = self.seq(body.get("steps") or [],
                             [(h.id, EdgeKind.BRANCH_TRUE, "enter")], s, f"{path}.steps")
         self.connect(body_out, h.id, force=EdgeKind.LOOP_BACK)
@@ -393,7 +400,8 @@ class _Builder:
         # A non-empty YAML list literal runs at least once (control.py:170-171):
         # model it do-while style so the body is entered unconditionally.
         must_run = isinstance(src, list) and len(src) > 0
-        s = self.scope("loop_body", scope, label=h.name)
+        s = self.scope("loop_body", scope, label=h.name, header=h.id, arm="body")
+        h.extra["body_scope"] = s
         bind = self.node("bind", f"<{var}>", s, path, line)
         if var:
             bind.writes.append(Write(var, "loop_var"))
@@ -426,7 +434,7 @@ class _Builder:
         outs: "Pending" = []
         for i, child in enumerate(body):
             s = self.scope("parallel_branch", scope, discards=True, fork=f.id,
-                           label=f"parallel[{i}]")
+                           label=f"parallel[{i}]", header=f.id, arm=str(i))
             outs += self.step(child, [(f.id, EdgeKind.PARALLEL_FORK, str(i))], s,
                               f"{path}[{i}]")
         j = self.node("join", "<parallel join>", scope, path, None,

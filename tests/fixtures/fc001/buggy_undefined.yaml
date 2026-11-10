@@ -1,0 +1,13 @@
+# expect: FC001 node=write_report var=summary
+name: fc001_undefined
+goal: A task reads a variable that nothing writes.
+parameters:
+  topic: "agents"
+workflow:
+  - task:
+      name: research
+      instruction: "Research {{topic}}."
+      save_as: notes
+  - task:
+      name: write_report
+      instruction: "Write a report from {{summary}}."

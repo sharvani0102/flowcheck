@@ -1,0 +1,22 @@
+# expect: FC002 node=finish var=answer
+name: fc002_switch
+goal: No default branch, so an unmatched value skips the write.
+parameters:
+  kind: "single"
+workflow:
+  - switch:
+      variable: kind
+      cases:
+        single:
+          - task:
+              name: one
+              instruction: "Pick one."
+              save_as: answer
+        multi:
+          - task:
+              name: many
+              instruction: "Pick several."
+              save_as: answer
+  - task:
+      name: finish
+      instruction: "Final answer: {{answer}}"

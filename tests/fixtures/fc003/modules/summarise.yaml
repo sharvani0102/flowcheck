@@ -1,0 +1,10 @@
+name: summarise
+goal: Summarise a text and return the summary.
+parameters:
+  text: "${TEXT}"
+workflow:
+  - task:
+      name: summarise
+      instruction: "Summarise: {{text}}"
+      save_as: summary
+  - return: summary

@@ -27,7 +27,11 @@ def check(an: Analysis) -> List[Finding]:
             path = witness_path(wf, node.id, writers)
             if path is not None and an.oracle.check(wf, path) is False:
                 continue  # phase two: provably infeasible, so no finding
-            if not writers:
+            if not writers and any(w.name == "result_N" for n in an.pattern_writers
+                                   for w in n.writes):
+                why = ("module-form parallel writes result_1..result_N only for the entries "
+                       "parameters_list actually has (calls.py:462-469)")
+            elif not writers:
                 why = ("it can only come from a templated save_as, whose name isn't known "
                        "statically")
             else:

@@ -1,0 +1,11 @@
+# expect: FC001 node=use var=analysys
+name: fc001_typo
+goal: A misspelled variable name.
+workflow:
+  - step:
+      name: analyse
+      instruction: "Analyse the repository."
+      save_as: analysis
+  - step:
+      name: use
+      instruction: "Use {{analysys}}."

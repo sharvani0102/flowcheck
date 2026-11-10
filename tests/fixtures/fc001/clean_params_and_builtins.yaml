@@ -1,0 +1,28 @@
+# Clean: parameters, built-ins, dotted access, comparison literals, increment,
+# input's default save_as, and the system prompt reading a parameter.
+name: fc001_clean
+goal: Nothing here is undefined.
+system_prompt: "You are an expert on {{topic}}."
+parameters:
+  topic: "agents"
+  max_rounds: 3
+workflow:
+  - task:
+      name: plan
+      instruction: |
+        Goal: {{goal}}. Task: {{task_name}}. Previous: {{prev_output}}.
+        Output dir: {{task_output_dir}}. Topic: {{topic}}.
+      save_as: analysis
+  - task:
+      name: keywords
+      instruction: "Keywords: {{analysis.keywords}}"
+      save_as: status
+  - if:
+      condition: "status == DONE and max_rounds > 1"
+      then:
+        - increment: counter
+  - input:
+      prompt: "Any feedback on {{topic}}?"
+  - task:
+      name: use_feedback
+      instruction: "Feedback: {{user_input}}. JSON: {{\"not\": \"a var\"}}"

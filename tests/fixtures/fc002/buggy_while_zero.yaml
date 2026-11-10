@@ -1,0 +1,18 @@
+# expect: FC002 node=submit var=attempt_log
+name: fc002_while_zero
+goal: A while loop may run zero times, so writes inside it are not definite.
+parameters:
+  tries: 0
+  max_tries: 3
+workflow:
+  - while:
+      condition: "tries < max_tries"
+      steps:
+        - task:
+            name: attempt
+            instruction: "Try again."
+            save_as: attempt_log
+        - increment: tries
+  - task:
+      name: submit
+      instruction: "Submit {{attempt_log}}."

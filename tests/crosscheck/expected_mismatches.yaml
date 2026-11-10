@@ -1,0 +1,649 @@
+# Every difference between FlowCheck's IR and Lean4Agent's Layer-2 IR JSON,
+# each reviewed and categorised. tests/test_crosscheck.py requires the computed
+# mismatches to equal this list exactly. Refresh with scripts/crosscheck_review.py.
+categories:
+  IR-linearised-edges: The ELAIP IR builder links each flattened node to the next one only (experiments/elaip_LeanEvolve/build_layer2_ir.py:394-399),
+    so it has no loop-back, loop-skip or branch edges, and it chains the last node of one branch to the
+    first node of the next. FlowCheck models the real control flow.
+  IR-instruction-only-reads: The ELAIP IR builder takes reads from `instruction` only and records none
+    for set_variable (build_layer2_ir.py:243, 292). AgentSPEX template-expands set_variable `value` (variables.py:92),
+    so FlowCheck counts those reads.
+  IR-stale-vs-YAML: 'The YAML was changed after the IR was generated (ELAIP failed_workflow_3: rewritten
+    in Lean4Agent commit 17b2099; SWE failed_workflow_2: the old `discover` step was ported to a task
+    named `edge_case_list`, see the comment at failed_workflow_2.yaml:229). The IR describes the older
+    workflow.'
+  IR-abstraction: 'The SWE IR is a hand/LLM-authored abstraction: it omits scaffolding steps (set_variable,
+    increment), merges or drops some LLM steps and an inner `if`, models for_each as whileLoop, and leaves
+    out some templated reads. FlowCheck lists every step and every `{{...}}` the runtime expands.'
+  IR-conceptual-read: 'The IR lists a read that the YAML never template-expands: the variable is only
+    named in prose (e.g. ''Source: candidate_files_report'', ''the PR description'', a path mentioned
+    in text). At runtime the value is not substituted, so FlowCheck has no read. (Several of these are
+    exactly what FC004 is meant to flag.)'
+  IR-conceptual-write: The IR lists a write, but the YAML step has no save_as, so nothing is written at
+    runtime.
+  IR-runtime-ignores: 'The IR lists the read a broken construct was meant to perform, but AgentSPEX never
+    performs it: the condition uses the unsupported `contains` operator (always false, conditions.py:142-206),
+    or the switch has no `variable` key because YAML parsed `on:` as a boolean (control.py:405-417). FlowCheck
+    reports these as FC005 instead.'
+  IR-type-label: The IR labels the step with a different step type than the YAML uses.
+mismatches:
+- workflow: swe/passed_workflow_2
+  kind: type
+  node: 0:present_problem
+  detail: FlowCheck step, IR task
+  category: IR-type-label
+  note: YAML passed_workflow_2.yaml:36 uses `- step:`
+- workflow: swe/passed_workflow_2
+  kind: reads
+  node: 0:present_problem
+  detail: 'only IR: code_path'
+  category: IR-conceptual-read
+  note: code_path appears once in prose, never as {{code_path}}
+- workflow: swe/passed_workflow_3
+  kind: node_extra
+  node: set_variable:fix_attempt
+  detail: FlowCheck set_variable at workflow[3].set_variable
+  category: IR-abstraction
+  note: ''
+- workflow: swe/passed_workflow_3
+  kind: node_extra
+  node: set_variable:fix_verified
+  detail: FlowCheck set_variable at workflow[4].set_variable
+  category: IR-abstraction
+  note: ''
+- workflow: swe/passed_workflow_3
+  kind: node_extra
+  node: set_variable:retry_notes
+  detail: FlowCheck set_variable at workflow[5].set_variable
+  category: IR-abstraction
+  note: ''
+- workflow: swe/passed_workflow_3
+  kind: node_extra
+  node: update_fix_status
+  detail: FlowCheck task at workflow[6].while.steps[3].task
+  category: IR-abstraction
+  note: ''
+- workflow: swe/passed_workflow_3
+  kind: node_extra
+  node: if fix_verified == true
+  detail: FlowCheck if at workflow[6].while.steps[4].if
+  category: IR-abstraction
+  note: ''
+- workflow: swe/passed_workflow_3
+  kind: node_extra
+  node: set_variable:fix_attempt
+  detail: FlowCheck set_variable at workflow[6].while.steps[4].if.then[0].set_variable
+  category: IR-abstraction
+  note: ''
+- workflow: swe/passed_workflow_3
+  kind: node_extra
+  node: accumulate_retry_notes
+  detail: FlowCheck task at workflow[6].while.steps[4].if.else[0].task
+  category: IR-abstraction
+  note: ''
+- workflow: swe/passed_workflow_3
+  kind: node_extra
+  node: revert_changes
+  detail: FlowCheck task at workflow[6].while.steps[4].if.else[1].task
+  category: IR-abstraction
+  note: ''
+- workflow: swe/passed_workflow_3
+  kind: node_extra
+  node: increment:fix_attempt
+  detail: FlowCheck increment at workflow[6].while.steps[4].if.else[2].increment
+  category: IR-abstraction
+  note: ''
+- workflow: swe/passed_workflow_3
+  kind: reads
+  node: 4:implement_fix
+  detail: 'only FlowCheck: fix_attempt, max_fix_attempts'
+  category: IR-abstraction
+  note: these are templated in the YAML ({{fix_attempt}}, {{max_fix_attempts}}) but omitted from the IR
+- workflow: swe/passed_workflow_3
+  kind: writes
+  node: 6:check_verification
+  detail: 'only FlowCheck: verification_check; only IR: fix_verified'
+  category: IR-abstraction
+  note: the IR merges check_verification (save_as verification_check) and update_fix_status (save_as fix_verified)
+- workflow: swe/passed_workflow_3
+  kind: reads
+  node: 10:submit_best_effort
+  detail: 'only FlowCheck: max_fix_attempts'
+  category: IR-abstraction
+  note: these are templated in the YAML ({{fix_attempt}}, {{max_fix_attempts}}) but omitted from the IR
+- workflow: swe/failed_workflow_2
+  kind: node_missing
+  node: discover_edge_case_list
+  detail: IR node 7 (task)
+  category: IR-stale-vs-YAML
+  note: IR still names the step discover_edge_case_list; the YAML task is edge_case_list
+- workflow: swe/failed_workflow_2
+  kind: node_extra
+  node: edge_case_list
+  detail: FlowCheck task at workflow[5].task
+  category: IR-stale-vs-YAML
+  note: IR still names the step discover_edge_case_list; the YAML task is edge_case_list
+- workflow: swe/failed_workflow_2
+  kind: reads
+  node: 2:repro_check
+  detail: 'only IR: repro_report'
+  category: IR-runtime-ignores
+  note: condition 'repro_report contains could_not_reproduce' (FC005)
+- workflow: swe/failed_workflow_2
+  kind: type
+  node: 8:for_each_edge_cases
+  detail: FlowCheck forEachLoop, IR whileLoop
+  category: IR-abstraction
+  note: ''
+- workflow: swe/failed_workflow_2
+  kind: reads
+  node: 9:probe_edge_case
+  detail: 'only FlowCheck: regression_test_cmd'
+  category: IR-abstraction
+  note: '{{regression_test_cmd}} is templated in the YAML (failed_workflow_2.yaml:264)'
+- workflow: swe/failed_workflow_2
+  kind: writes
+  node: 10:create_and_submit_patch
+  detail: 'only IR: submission_result'
+  category: IR-conceptual-write
+  note: create_and_submit_patch has no save_as
+- workflow: swe/failed_workflow_2
+  kind: edge_missing
+  node: 6:apply_fix -> 7:discover_edge_case_list
+  detail: edge only in IR
+  category: IR-stale-vs-YAML
+  note: IR still names the step discover_edge_case_list; the YAML task is edge_case_list
+- workflow: swe/failed_workflow_2
+  kind: edge_missing
+  node: 7:discover_edge_case_list -> 8:for_each_edge_cases
+  detail: edge only in IR
+  category: IR-stale-vs-YAML
+  note: IR still names the step discover_edge_case_list; the YAML task is edge_case_list
+- workflow: swe/failed_workflow_2
+  kind: edge_extra
+  node: 6:apply_fix -> 8:for_each_edge_cases
+  detail: edge only in FlowCheck
+  category: IR-stale-vs-YAML
+  note: IR still names the step discover_edge_case_list; the YAML task is edge_case_list
+- workflow: swe/failed_workflow_3
+  kind: reads
+  node: 0:orient_and_scan
+  detail: 'only IR: code_path'
+  category: IR-conceptual-read
+  note: ''
+- workflow: swe/failed_workflow_3
+  kind: reads
+  node: 2:candidate_file_list
+  detail: 'only IR: candidate_files_report'
+  category: IR-conceptual-read
+  note: ''
+- workflow: swe/failed_workflow_3
+  kind: reads
+  node: 5:build_reproduction
+  detail: 'only IR: problem_statement'
+  category: IR-conceptual-read
+  note: ''
+- workflow: swe/failed_workflow_3
+  kind: reads
+  node: 7:dispatch_fix_strategy
+  detail: 'only IR: fix_strategy'
+  category: IR-runtime-ignores
+  note: switch uses `on:` (FC005)
+- workflow: swe/failed_workflow_3
+  kind: reads
+  node: 12:apply_generic_fix
+  detail: 'only IR: problem_statement'
+  category: IR-conceptual-read
+  note: ''
+- workflow: swe/failed_workflow_3
+  kind: reads
+  node: 14:if_reproduction_still_failing
+  detail: 'only IR: post_fix_verification'
+  category: IR-runtime-ignores
+  note: condition uses `contains` (FC005)
+- workflow: swe/failed_workflow_3
+  kind: writes
+  node: 17:edge_case_plan
+  detail: 'only IR: edge_case_report'
+  category: IR-conceptual-write
+  note: edge_case_plan has no save_as
+- workflow: elaip/passed_workflow_1
+  kind: edge_missing
+  node: 11:finalize_multi_answer -> 12:finalize_single_answer
+  detail: edge only in IR
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_1
+  kind: edge_missing
+  node: 12:finalize_single_answer -> 13:finalize_default_answer
+  detail: edge only in IR
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_1
+  kind: edge_extra
+  node: 3:search_keywords -> 5:consolidate_evidence_snippets
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_1
+  kind: edge_extra
+  node: 4:locate_keyword_passages -> 4:locate_keyword_passages
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_1
+  kind: edge_extra
+  node: 7:evaluate_options -> 12:finalize_single_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_1
+  kind: edge_extra
+  node: 7:evaluate_options -> 13:finalize_default_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_1
+  kind: edge_extra
+  node: 8:set_variable:recheck_count -> 11:finalize_multi_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_1
+  kind: edge_extra
+  node: 10:increment:recheck_count -> 9:recheck_options
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_2
+  kind: edge_extra
+  node: 3:evidence_quality -> 5:evaluate_options
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_2
+  kind: edge_extra
+  node: 5:evaluate_options -> 9:finalize_response
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_2
+  kind: edge_extra
+  node: 6:set_variable:recheck_count -> 9:finalize_response
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_2
+  kind: edge_extra
+  node: 8:increment:recheck_count -> 7:recheck_options
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_3
+  kind: reads
+  node: 6:set_variable:keyword_evidence_buffer
+  detail: 'only FlowCheck: keyword_evidence_buffer, keyword_hits'
+  category: IR-instruction-only-reads
+  note: ''
+- workflow: elaip/passed_workflow_3
+  kind: edge_missing
+  node: 13:finalize_multi_answer -> 14:finalize_single_answer
+  detail: edge only in IR
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_3
+  kind: edge_missing
+  node: 14:finalize_single_answer -> 15:finalize_default
+  detail: edge only in IR
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_3
+  kind: edge_extra
+  node: 4:set_variable:keyword_evidence_buffer -> 7:consolidate_evidence
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_3
+  kind: edge_extra
+  node: 6:set_variable:keyword_evidence_buffer -> 5:search_paper_for_keyword
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_3
+  kind: edge_extra
+  node: 9:evaluate_options -> 14:finalize_single_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_3
+  kind: edge_extra
+  node: 9:evaluate_options -> 15:finalize_default
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_3
+  kind: edge_extra
+  node: 10:set_variable:recheck_count -> 13:finalize_multi_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/passed_workflow_3
+  kind: edge_extra
+  node: 12:increment:recheck_count -> 11:recheck_options
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_1
+  kind: reads
+  node: 6:set_variable:evidence_snippets
+  detail: 'only FlowCheck: evidence_snippets, keyword_hits'
+  category: IR-instruction-only-reads
+  note: ''
+- workflow: elaip/failed_workflow_1
+  kind: edge_missing
+  node: 14:finalize_multi_answer -> 15:finalize_single_answer
+  detail: edge only in IR
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_1
+  kind: edge_extra
+  node: 4:set_variable:evidence_snippets -> 7:evaluate_A
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_1
+  kind: edge_extra
+  node: 6:set_variable:evidence_snippets -> 5:search_keyword_in_paper
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_1
+  kind: edge_extra
+  node: 10:evaluate_D -> 15:finalize_single_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_1
+  kind: edge_extra
+  node: 11:set_variable:recheck_count -> 14:finalize_multi_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_1
+  kind: edge_extra
+  node: 13:increment:recheck_count -> 12:aggregate_and_recheck
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_2
+  kind: edge_missing
+  node: 11:finalize_multi_answer -> 12:finalize_single_answer
+  detail: edge only in IR
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_2
+  kind: edge_extra
+  node: 3:classify_question_type -> 5:consolidate_evidence
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_2
+  kind: edge_extra
+  node: 4:search_keyword_in_paper -> 4:search_keyword_in_paper
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_2
+  kind: edge_extra
+  node: 7:evaluate_options -> 12:finalize_single_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_2
+  kind: edge_extra
+  node: 8:set_variable:recheck_count -> 11:finalize_multi_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_2
+  kind: edge_extra
+  node: 10:increment:recheck_count -> 9:recheck_options
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: node_extra
+  node: search_keywords_in_paper
+  detail: FlowCheck workflow[4].step
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: node_extra
+  node: filter_relevant_paragraphs
+  detail: FlowCheck workflow[5].step
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: node_extra
+  node: aggregate_and_recheck
+  detail: FlowCheck workflow[11].switch.cases.MA-MCQ[1].while.steps[0].step
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: node_missing
+  node: note_negation
+  detail: IR node 4
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: node_missing
+  node: gather_evidence
+  detail: IR node 5
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: node_missing
+  node: recheck_options
+  detail: IR node 12
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: node_missing
+  node: finalize_default
+  detail: IR node 16
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 0:skim_paper
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 1:extract_section_headings
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 2:extract_keywords
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: reads
+  node: 2:extract_keywords
+  detail: 'only FlowCheck: paper_overview, section_headings; only IR: question_type_instruction'
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: writes
+  node: 2:extract_keywords
+  detail: 'only FlowCheck: question_analysis; only IR: question_keywords'
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 3:classify_question_type
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: reads
+  node: 3:classify_question_type
+  detail: 'only FlowCheck: question_type_instruction; only IR: question_type'
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: writes
+  node: 3:classify_question_type
+  detail: 'only FlowCheck: question_kind; only IR: question_class'
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 6:verify_evidence_quality
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: reads
+  node: 6:verify_evidence_quality
+  detail: 'only FlowCheck: question_analysis; only IR: question'
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: writes
+  node: 6:verify_evidence_quality
+  detail: 'only FlowCheck: evidence_check; only IR: evidence_quality'
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 7:evaluate_A
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: reads
+  node: 7:evaluate_A
+  detail: 'only IR: negation_flag'
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 8:evaluate_B
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 9:evaluate_C
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 10:evaluate_D
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 14:finalize_multi_answer
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: reads
+  node: 14:finalize_multi_answer
+  detail: 'only FlowCheck: combined_judgment; only IR: judgment_A, judgment_B, judgment_C, judgment_D,
+    negation_flag, recheck_summary'
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: type
+  node: 15:finalize_single_answer
+  detail: FlowCheck step, IR task
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: reads
+  node: 15:finalize_single_answer
+  detail: 'only IR: negation_flag'
+  category: IR-stale-vs-YAML
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: edge_missing
+  node: 3:classify_question_type -> 4:note_negation
+  detail: edge only in IR
+  category: IR-stale-vs-YAML
+  note: edge differs because the IR's node list comes from the older YAML
+- workflow: elaip/failed_workflow_3
+  kind: edge_missing
+  node: 4:note_negation -> 5:gather_evidence
+  detail: edge only in IR
+  category: IR-stale-vs-YAML
+  note: edge differs because the IR's node list comes from the older YAML
+- workflow: elaip/failed_workflow_3
+  kind: edge_missing
+  node: 5:gather_evidence -> 6:verify_evidence_quality
+  detail: edge only in IR
+  category: IR-stale-vs-YAML
+  note: edge differs because the IR's node list comes from the older YAML
+- workflow: elaip/failed_workflow_3
+  kind: edge_missing
+  node: 11:set_variable:recheck_count -> 12:recheck_options
+  detail: edge only in IR
+  category: IR-stale-vs-YAML
+  note: edge differs because the IR's node list comes from the older YAML
+- workflow: elaip/failed_workflow_3
+  kind: edge_missing
+  node: 12:recheck_options -> 13:increment:recheck_count
+  detail: edge only in IR
+  category: IR-stale-vs-YAML
+  note: edge differs because the IR's node list comes from the older YAML
+- workflow: elaip/failed_workflow_3
+  kind: edge_missing
+  node: 14:finalize_multi_answer -> 15:finalize_single_answer
+  detail: edge only in IR
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: edge_missing
+  node: 15:finalize_single_answer -> 16:finalize_default
+  detail: edge only in IR
+  category: IR-stale-vs-YAML
+  note: edge differs because the IR's node list comes from the older YAML
+- workflow: elaip/failed_workflow_3
+  kind: edge_extra
+  node: 3:classify_question_type -> 6:verify_evidence_quality
+  detail: edge only in FlowCheck
+  category: IR-stale-vs-YAML
+  note: edge differs because the IR's node list comes from the older YAML
+- workflow: elaip/failed_workflow_3
+  kind: edge_extra
+  node: 10:evaluate_D -> 15:finalize_single_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: edge_extra
+  node: 11:set_variable:recheck_count -> 13:increment:recheck_count
+  detail: edge only in FlowCheck
+  category: IR-stale-vs-YAML
+  note: edge differs because the IR's node list comes from the older YAML
+- workflow: elaip/failed_workflow_3
+  kind: edge_extra
+  node: 11:set_variable:recheck_count -> 14:finalize_multi_answer
+  detail: edge only in FlowCheck
+  category: IR-linearised-edges
+  note: ''
+- workflow: elaip/failed_workflow_3
+  kind: edge_extra
+  node: 13:increment:recheck_count -> 13:increment:recheck_count
+  detail: edge only in FlowCheck
+  category: IR-stale-vs-YAML
+  note: self-loop only because the current loop body step aggregate_and_recheck has no counterpart in
+    the stale IR (which has recheck_options)

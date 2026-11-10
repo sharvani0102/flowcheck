@@ -1,0 +1,17 @@
+# expect: FC005 node="switch "
+name: fc005_switch_on
+goal: YAML 1.1 reads the key 'on' as the boolean true.
+parameters:
+  strategy: "a"
+workflow:
+  - switch:
+      on: strategy
+      cases:
+        a:
+          - task:
+              name: do_a
+              instruction: "Do A."
+      default:
+        - task:
+            name: do_default
+            instruction: "Do the default."

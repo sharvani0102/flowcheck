@@ -1,0 +1,17 @@
+# expect: FC002 node=refine var=feedback
+name: fc002_first_iteration
+goal: The body reads a variable that is only written later in the same body.
+parameters:
+  items: ["a", "b"]
+workflow:
+  - for_each:
+      variable: item
+      in: [1, 2, 3]
+      steps:
+        - task:
+            name: refine
+            instruction: "Refine {{item}} using {{feedback}}."
+        - task:
+            name: critique
+            instruction: "Critique {{item}}."
+            save_as: feedback

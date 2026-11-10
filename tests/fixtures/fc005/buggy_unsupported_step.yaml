@@ -1,0 +1,11 @@
+# expect: FC005 node=synthesize:report
+# expect: FC001 node=publish var=report
+name: fc005_unsupported
+goal: A step kind the current interpreter silently skips.
+workflow:
+  - synthesize:
+      name: report
+      instruction: "Write the report."
+  - task:
+      name: publish
+      instruction: "Publish {{report}}."

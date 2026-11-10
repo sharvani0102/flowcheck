@@ -1,0 +1,33 @@
+# Clean: the loop variable inside its body, a write inside a for_each over a
+# non-empty literal list read after the loop, and a variable initialised
+# before a while loop that the loop also updates.
+name: fc002_clean_loops
+goal: Loops that cannot leave a read undefined.
+parameters:
+  rounds: 0
+workflow:
+  - for_each:
+      variable: section
+      in: ["intro", "method"]
+      steps:
+        - task:
+            name: summarise
+            instruction: "Summarise the {{section}} section."
+            save_as: last_summary
+  - task:
+      name: use_last
+      instruction: "Last summary: {{last_summary}}"
+  - set_variable:
+      name: draft
+      value: "empty"
+  - while:
+      condition: "rounds < 2"
+      steps:
+        - task:
+            name: improve
+            instruction: "Improve {{draft}}."
+            save_as: draft
+        - increment: rounds
+  - task:
+      name: publish
+      instruction: "Publish {{draft}}."

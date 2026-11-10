@@ -1,0 +1,17 @@
+# expect: FC003 node=combine var=pros
+# expect: FC003 node=combine var=cons
+name: fc003_parallel
+goal: Writes inside list-form parallel children are discarded.
+workflow:
+  - parallel:
+      - task:
+          name: list_pros
+          instruction: "List the pros."
+          save_as: pros
+      - task:
+          name: list_cons
+          instruction: "List the cons."
+          save_as: cons
+  - task:
+      name: combine
+      instruction: "Weigh {{pros}} against {{cons}}."

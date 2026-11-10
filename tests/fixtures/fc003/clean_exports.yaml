@@ -1,0 +1,33 @@
+# Clean: call.save_as, gather per-call save_as, gather_result_N defaults,
+# save_results_as, and module-form parallel save_results_as.
+# (result_N is only maybe-defined: see fc002/buggy_parallel_result_n.yaml.)
+name: fc003_clean_exports
+goal: Every exported name is visible after its block.
+parameters:
+  doc: "some text"
+  param_sets: [{"text": "a"}, {"text": "b"}]
+workflow:
+  - call:
+      module: "modules/summarise.yaml"
+      parameters:
+        text: "{{doc}}"
+      return: summary
+      save_as: summary
+  - gather:
+      calls:
+        - module: "modules/summarise.yaml"
+          parameters: {text: "{{summary}}"}
+          save_as: short
+        - module: "modules/summarise.yaml"
+          parameters: {text: "{{doc}}"}
+      save_results_as: all_summaries
+  - parallel:
+      module: "modules/summarise.yaml"
+      parameters_list: "param_sets"
+      save_results_as: batch
+      max_workers: 2
+  - task:
+      name: report
+      instruction: |
+        {{summary}} {{short}} {{gather_result_2}} {{all_summaries}}
+        {{batch}}

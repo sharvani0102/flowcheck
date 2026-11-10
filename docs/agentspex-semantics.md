@@ -463,7 +463,11 @@ choose, it chooses as follows.
    runtime defaults the value to 0 (`variables.py:57-60`).
 7. **Templated `save_as`** such as `analysis_{{topic}}` may define any name
    matching the pattern, so a matching read is at best "maybe defined". It
-   never satisfies a definite-assignment requirement.
+   never satisfies a definite-assignment requirement. The same applies to
+   `result_1 … result_N` after a module-form `parallel`: they exist only for
+   the entries `parameters_list` actually has (`calls.py:462-469`), so a read
+   of `result_1` is "maybe defined" (FC002), while `save_results_as` is
+   always defined.
 8. **Workflow-level `system_prompt` reads** are checked at workflow entry,
    which is when they are expanded for `step` history (`agent.py:619`).
 9. **Module files analysed on their own** treat their declared `parameters`

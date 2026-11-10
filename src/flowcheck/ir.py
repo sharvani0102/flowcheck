@@ -104,6 +104,8 @@ class Scope:
     discards_writes: bool = False
     fork: Optional[int] = None  # fork node id for parallel branches
     label: str = ""
+    header: Optional[int] = None  # control header node this region belongs to
+    arm: str = ""  # then / else / case value / default / body / child index
 
 
 @dataclass

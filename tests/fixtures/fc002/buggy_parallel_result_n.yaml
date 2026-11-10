@@ -1,0 +1,14 @@
+# expect: FC002 node=report var=result_1
+name: fc002_result_n
+goal: result_N exists only if parameters_list has at least N entries.
+parameters:
+  param_sets: []
+workflow:
+  - parallel:
+      module: "../fc003/modules/summarise.yaml"
+      parameters_list: "param_sets"
+      save_results_as: batch
+      max_workers: 2
+  - task:
+      name: report
+      instruction: "First result: {{result_1}}. All: {{batch}}"

@@ -165,23 +165,23 @@ def describe_path(wf: Workflow, path: List[Edge], writers: Set[int] = frozenset(
     taken edge does not.
     """
     entered = {e.src for e in path if e.kind == EdgeKind.BRANCH_TRUE}
-    cache: Dict[int, Set[int]] = {}
+    writer_scopes = [set(wf.scope_chain(wf.nodes[w].scope)) for w in writers]
 
-    def reach(n: int) -> Set[int]:
-        if n not in cache:
-            cache[n] = reachable_from(wf, n) | {n}
-        return cache[n]
+    def writes_in(scope: Optional[int]) -> bool:
+        return scope is not None and any(scope in ch for ch in writer_scopes)
 
     def relevant(e: Edge) -> bool:
+        """A decision matters if it skips a region that contains a write."""
         if not writers:
             return True
-        if writers & reach(e.dst) and e.kind != EdgeKind.BRANCH_FALSE:
-            return False
-        others = [o for o in wf.succ_edges(e.src) if o is not e]
-        # For a loop exit, the alternative is entering the body; a write there
-        # still reaches the exit via loop_back, so compare against the body.
-        return any(writers & reach(o.dst) for o in others) and not (
-            e.kind != EdgeKind.BRANCH_FALSE and writers & reach(e.dst))
+        h = wf.nodes[e.src]
+        if h.type in ("while", "for_each"):
+            return writes_in(h.extra.get("body_scope"))
+        arms = h.extra.get("arm_scopes", {})
+        taken = arms.get(e.label if e.kind == EdgeKind.BRANCH_TRUE else
+                         ("else" if h.type == "if" else "default"))
+        others = [s for lbl, s in arms.items() if s != taken]
+        return not writes_in(taken) and any(writes_in(s) for s in others)
 
     out = []
     for e in path:

@@ -1,0 +1,12 @@
+# expect: FC003 node=use_outline var=outline
+name: fc003_sibling
+goal: A parallel child reads what its sibling writes.
+workflow:
+  - parallel:
+      - task:
+          name: make_outline
+          instruction: "Write an outline."
+          save_as: outline
+      - task:
+          name: use_outline
+          instruction: "Expand {{outline}}."

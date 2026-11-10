@@ -1,0 +1,11 @@
+# expect: FC001 node=review var=draft
+name: fc001_written_later
+goal: The reader comes before its writer.
+workflow:
+  - task:
+      name: review
+      instruction: "Review {{draft}}."
+  - task:
+      name: write
+      instruction: "Write a draft."
+      save_as: draft

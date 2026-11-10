@@ -1,0 +1,9 @@
+# expect: FC001 node=greet var=" topic "
+name: fc001_whitespace
+goal: AgentSPEX does not strip spaces inside the braces.
+parameters:
+  topic: "agents"
+workflow:
+  - task:
+      name: greet
+      instruction: "Talk about {{ topic }}."

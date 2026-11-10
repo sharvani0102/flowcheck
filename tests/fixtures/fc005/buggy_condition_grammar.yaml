@@ -1,0 +1,14 @@
+# expect: FC005 node="if report contains 'FAIL'"
+name: fc005_condition
+goal: "contains is not an operator AgentSPEX supports."
+workflow:
+  - task:
+      name: run_tests
+      instruction: "Run the tests."
+      save_as: report
+  - if:
+      condition: "report contains 'FAIL'"
+      then:
+        - task:
+            name: fix
+            instruction: "Fix {{report}}."

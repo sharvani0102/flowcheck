@@ -1,0 +1,21 @@
+name: fc002_clean_switch
+goal: Every case and the default write the variable.
+parameters:
+  kind: "single"
+workflow:
+  - switch:
+      variable: kind
+      cases:
+        single:
+          - task:
+              name: one
+              instruction: "Pick one."
+              save_as: answer
+      default:
+        - task:
+            name: other
+            instruction: "Pick something."
+            save_as: answer
+  - task:
+      name: finish
+      instruction: "Final answer: {{answer}}"

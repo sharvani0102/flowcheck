@@ -1,0 +1,13 @@
+# expect: FC003 node=report var=summary
+name: fc003_module
+goal: A module's internal variable is not visible to the caller.
+parameters:
+  doc: "some text"
+workflow:
+  - call:
+      module: "modules/summarise.yaml"
+      parameters:
+        text: "{{doc}}"
+  - task:
+      name: report
+      instruction: "Report {{summary}}."
